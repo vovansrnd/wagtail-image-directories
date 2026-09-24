@@ -1,0 +1,29 @@
+<div class="modal-content">
+    <div class="w-field">
+        <label class="w-field__label">Выберите существующую директорию:</label>
+        <select id="id_destination_dir" class="w-input" style="width: 100%; padding: 8px; margin-bottom: 12px;">
+            <option value="">-- Ввести вручную ниже --</option>
+            {% for year, slugs in dir_tree.items %}
+                {% for slug in slugs %}
+                    <option value="{{ year }}/{{ slug }}">{{ year }}/{{ slug|default:"(без-категории)" }}</option>
+                {% endfor %}
+            {% endfor %}
+        </select>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <div style="flex: 1;">
+            <label>Корневая папка (Год):</label>
+            <input type="text" id="id_new_year" class="w-input" style="width: 100%; padding: 8px;">
+        </div>
+        <div style="flex: 1;">
+            <label>Под-папка (Slug):</label>
+            <input type="text" id="id_new_slug" class="w-input" style="width: 100%; padding: 8px;">
+        </div>
+    </div>
+
+    <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button type="button" id="cancel-move-btn" class="button button-secondary">Отмена</button>
+        <button type="button" id="submit-move-btn" class="button">Переместить</button>
+    </div>
+</div>

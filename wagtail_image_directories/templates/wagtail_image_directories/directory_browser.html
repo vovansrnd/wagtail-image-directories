@@ -1,0 +1,348 @@
+{% extends "wagtailadmin/base.html" %}
+{% load i18n static wagtailimages_tags wagtailadmin_tags %}
+
+{% block titletag %}{% trans "Image Navigator" %}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    /* =========================================================
+       ДИЗАЙН НАВИГАТОРА ИЗОБРАЖЕНИЙ (WAGTAIL DARK / LIGHT)
+       ========================================================= */
+
+    /* Верхние аккуратные карточки статистики */
+    .overview-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    .stat-card {
+        background: var(--w-color-surface-menus, #262626);
+        border: 1px solid var(--w-color-border-furniture, #444);
+        border-radius: 8px;
+        padding: 1.25rem;
+        text-align: center;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #26b5a9; /* Приятный бирюзовый акцент вместо ядовитого фиолетового */
+        margin-bottom: 0.25rem;
+    }
+    .stat-label {
+        color: var(--w-color-text-context, #aaa);
+        font-size: 0.875rem;
+    }
+
+    /* Аккордеоны годов */
+    .listing-group {
+        margin-bottom: 1.25rem;
+        background: var(--w-color-surface-menus, #242424);
+        border: 1px solid var(--w-color-border-furniture, #3a3a3a);
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+    .listing-group-header {
+        background: #2a2f35 !important; /* Спокойный графитовый фон шапки года */
+        color: #fff !important;
+        padding: 0.85rem 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        user-select: none;
+        list-style: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .listing-group-header::-webkit-details-marker { display: none; }
+    .listing-group-header:hover { background: #323840 !important; }
+
+    .listing-group-title {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-size: 1.15rem;
+        font-weight: 600;
+        margin: 0;
+        color: #fff !important;
+    }
+    .toggle-arrow { transition: transform 0.2s; flex-shrink: 0; }
+    details[open] .toggle-arrow { transform: rotate(180deg); }
+
+    .year-stats {
+        display: flex;
+        gap: 1.2rem;
+        font-size: 0.85rem;
+        color: #aaa;
+    }
+
+    /* Сетка папок внутри года */
+    .directories-list {
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .directory-card-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .directory-item {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        padding: 0.85rem 1rem;
+        border-radius: 6px;
+        text-decoration: none;
+        color: inherit;
+        background: var(--w-color-surface-field, #1e1e1e);
+        border: 1px solid var(--w-color-border-furniture, #3a3a3a);
+        transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .directory-item:hover {
+        border-color: #26b5a9;
+        transform: translateX(3px);
+        text-decoration: none;
+    }
+
+    .directory-preview {
+        width: 60px;
+        height: 60px;
+        margin-right: 1rem;
+        border-radius: 4px;
+        overflow: hidden;
+        background: #111;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        border: 1px solid #444;
+    }
+    .directory-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+    .directory-info { flex: 1; min-width: 0; }
+    .directory-title {
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 0.3rem;
+        color: var(--w-color-text-context, #eee);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .directory-meta {
+        font-size: 0.8rem;
+        color: var(--w-color-text-meta, #888);
+        display: flex;
+        gap: 1rem;
+    }
+
+    .directory-stats {
+        text-align: center;
+        padding-right: 1rem;
+    }
+    .file-count {
+        background: #26b5a9;
+        color: #111;
+        padding: 0.2rem 0.65rem;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    /* Кнопки действий над папкой (переименовать / слить / удалить) */
+    .action-buttons {
+        display: flex;
+        gap: 6px;
+        margin-left: 10px;
+        flex-shrink: 0;
+    }
+    .action-buttons button {
+        background: var(--w-color-surface-field, #2a2a2a);
+        color: var(--w-color-text-context, #ccc);
+        border: 1px solid var(--w-color-border-furniture, #444);
+        border-radius: 4px;
+        width: 32px;
+        height: 32px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+    }
+    .action-buttons button:hover:not(:disabled) {
+        border-color: #26b5a9;
+        color: #26b5a9;
+        transform: scale(1.08);
+    }
+    .action-buttons button.delete-dir-btn:hover:not(:disabled) {
+        border-color: #ff6b6b;
+        color: #ff6b6b;
+    }
+    .action-buttons button:disabled { opacity: 0.25; cursor: not-allowed; }
+
+    /* Поиск по папкам */
+    .directory-search-wrapper { position: relative; max-width: 500px; margin-bottom: 1.5rem; }
+    #directory-search-input {
+        width: 100%;
+        padding: 0.7rem 1rem;
+        font-size: 0.95rem;
+        border: 1px solid var(--w-color-border-furniture, #444);
+        border-radius: 6px;
+        background: var(--w-color-surface-field, #222);
+        color: var(--w-color-text-context, #eee);
+    }
+    #directory-search-input:focus {
+        border-color: #26b5a9;
+        outline: none;
+    }
+    .directory-search-results {
+        position: absolute; top: 100%; left: 0; right: 0;
+        background: #242424;
+        border: 1px solid #444;
+        border-radius: 6px; margin-top: 4px;
+        max-height: 350px; overflow-y: auto; display: none; z-index: 1000;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    }
+
+    /* Модальное окно */
+    #create-dir-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 9998; display: none; }
+    #create-dir-wrapper {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: 90%; max-width: 440px;
+        background: var(--w-color-surface-field, #262626);
+        border: 1px solid var(--w-color-border-furniture, #555);
+        border-radius: 8px; padding: 22px; z-index: 9999;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.6); display: none;
+    }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+<header class="merged">
+    <div class="row nice-padding">
+        <div class="left col8">
+            <h1>
+                <svg class="icon icon--prefix" aria-hidden="true" width="24" height="24" style="margin-right: 0.5rem;">
+                    <use href="#icon-folder-open-inverse"></use>
+                </svg>
+                {% trans "Image Navigator" %}
+            </h1>
+        </div>
+        <div class="right col4" style="text-align: right;">
+            <button type="button" id="create-dir-btn" class="button button-small bicolor icon icon-plus">
+                {% trans "Create directory" %}
+            </button>
+        </div>
+    </div>
+</header>
+
+<div class="nice-padding directory-browser"
+     id="directory-browser-container"
+     data-create-url="{% url 'wagtail_image_directories:create_directory' %}"
+     data-delete-url="{% url 'wagtail_image_directories:delete_directory' %}"
+     data-rename-url="{% url 'wagtail_image_directories:rename_directory' %}"
+     data-merge-url="{% url 'wagtail_image_directories:merge_directories' %}"
+     data-search-url="{% url 'wagtail_image_directories:directory_search' %}"
+     data-csrf-token="{{ csrf_token }}">
+
+    <div class="directory-search-wrapper">
+        <input type="text" id="directory-search-input" placeholder="{% trans 'Search by folder name...' %}" autocomplete="off">
+        <div id="directory-search-results" class="directory-search-results"></div>
+    </div>
+
+    <div class="overview-stats">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_images|default:"0" }}</div>
+            <div class="stat-label">{% trans "Total images" %}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ total_years|default:"0" }}</div>
+            <div class="stat-label">{% trans "Root directories" %}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ total_directories|default:"0" }}</div>
+            <div class="stat-label">{% trans "Total directories" %}</div>
+        </div>
+    </div>
+
+    {% if directory_tree %}
+        {% for year_data in directory_tree %}
+            <details class="listing-group ajax-year-details" data-year="{{ year_data.year }}" data-loaded="false">
+                <summary class="listing-group-header">
+                    <h2 class="listing-group-title">
+                        <svg class="icon toggle-arrow" aria-hidden="true" width="18" height="18"><use href="#icon-arrow-down"></use></svg>
+                        <svg class="icon icon-date" aria-hidden="true" width="22" height="22"><use href="#icon-date"></use></svg>
+                        {{ year_data.year }}
+                    </h2>
+                    <div class="year-stats">
+                        <span>{{ year_data.total }} {% trans "images" %}</span>
+                        {% if year_data.total_size %}<span>{{ year_data.total_size|filesizeformat }}</span>{% endif %}
+                    </div>
+                </summary>
+                <div class="directories-list" id="dirs-list-{{ year_data.year }}">
+                    <div style="padding: 1.5rem; text-align: center; color: var(--w-color-text-meta);">{% trans "Loading folders..." %}</div>
+                </div>
+            </details>
+        {% endfor %}
+    {% else %}
+        <div style="text-align: center; padding: 3rem; color: var(--w-color-text-meta);">
+            <h3>{% trans "No directories yet" %}</h3>
+            <p>{% trans "Click 'Create directory' to start organizing your images." %}</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Модальное окно создания -->
+<div id="create-dir-overlay"></div>
+<div id="create-dir-wrapper">
+    <h2 style="margin-top:0;">{% trans "Create directory" %}</h2>
+    <div style="margin-bottom:12px;">
+        <label style="display:block; margin-bottom:4px; font-weight:600;">{% trans "Root folder (Year):" %}</label>
+        <input type="text" id="id_create_year" value="{% now 'Y' %}" style="width:100%; padding:8px; border:1px solid #555; border-radius:4px; background:var(--w-color-surface-field);">
+    </div>
+    <div style="margin-bottom:16px;">
+        <label style="display:block; margin-bottom:4px; font-weight:600;">{% trans "Sub-folder (Slug):" %}</label>
+        <input type="text" id="id_create_slug" placeholder="{% trans 'e.g. my-article-slug' %}" style="width:100%; padding:8px; border:1px solid #555; border-radius:4px; background:var(--w-color-surface-field);">
+    </div>
+    <div id="create-error-message" style="display:none; color:var(--w-color-critical-200, #ff6b6b); margin-bottom:10px;"></div>
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button type="button" id="cancel-create-btn" class="button button-secondary">{% trans "Cancel" %}</button>
+        <button type="button" id="submit-create-btn" class="button">{% trans "Create" %}</button>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const detailsElements = document.querySelectorAll('.ajax-year-details');
+    detailsElements.forEach(details => {
+        details.addEventListener('toggle', function() {
+            if (this.open && this.dataset.loaded === 'false') {
+                const year = this.dataset.year;
+                const listContainer = document.getElementById(`dirs-list-${year}`);
+                const fetchUrl = `{% url 'wagtail_image_directories:year_directories_ajax' 'PLACEHOLDER' %}`.replace('PLACEHOLDER', year);
+
+                fetch(fetchUrl)
+                    .then(response => response.text())
+                    .then(html => {
+                        listContainer.innerHTML = html;
+                        this.dataset.loaded = 'true';
+                    })
+                    .catch(error => {
+                        listContainer.innerHTML = '<div style="color:red; padding:1rem;">Ошибка загрузки</div>';
+                    });
+            }
+        });
+    });
+});
+</script>
+{% endblock extra_js %}

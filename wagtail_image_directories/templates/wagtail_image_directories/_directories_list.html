@@ -1,0 +1,43 @@
+{% load i18n wagtailimages_tags %}
+
+{% for dir in dirs %}
+    <div class="directory-card-wrapper">
+        <a href="{% url 'wagtail_image_directories:filtered_images' %}?year={{ year }}&slug={{ dir.slug }}"
+           class="directory-item">
+            <div class="directory-preview">
+                {% if dir.sample %}
+                    {% image dir.sample fill-90x90 as thumb %}
+                    <img src="{{ thumb.url }}" alt="{{ dir.display_slug }}">
+                {% else %}
+                    <span style="font-size:24px; opacity:0.4;">📁</span>
+                {% endif %}
+            </div>
+            <div class="directory-info">
+                <div class="directory-title">
+                    {{ dir.display_slug|default:_("uncategorized") }}
+                </div>
+                <div class="directory-meta">
+                    {% if dir.last_modified %}
+                        <span>{% trans "Updated:" %} {{ dir.last_modified|date:"d.m.Y H:i" }}</span>
+                    {% endif %}
+                    {% if dir.total_size %}
+                        <span>{{ dir.total_size|filesizeformat }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="directory-stats">
+                <span class="file-count">{{ dir.count }}</span>
+            </div>
+        </a>
+
+        <div class="action-buttons">
+            <button type="button" class="rename-dir-btn" title="{% trans 'Rename' %}" data-year="{{ year }}" data-slug="{{ dir.slug }}">✏️</button>
+            <button type="button" class="merge-dir-btn" title="{% trans 'Merge' %}" data-year="{{ year }}" data-slug="{{ dir.slug }}">📂</button>
+            <button type="button" class="delete-dir-btn" title="{% trans 'Delete' %}" data-year="{{ year }}" data-slug="{{ dir.slug }}" {% if dir.count > 0 %}disabled{% endif %}>🗑️</button>
+        </div>
+    </div>
+{% empty %}
+    <div style="padding: 1rem; color: var(--w-color-text-meta);">
+        {% trans "No sub-folders in this directory." %}
+    </div>
+{% endfor %}

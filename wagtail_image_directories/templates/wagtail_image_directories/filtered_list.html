@@ -1,0 +1,233 @@
+{% extends "wagtailadmin/base.html" %}
+{% load i18n static wagtailimages_tags wagtailadmin_tags %}
+
+{% block titletag %}{% trans "Images" %} - {{ year }}/{{ slug|default:_("uncategorized") }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .image-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.5rem;margin-bottom:2rem}.image-item{background:var(--w-surface-menus);border:2px solid var(--w-color-border-furniture);border-radius:8px;overflow:hidden;transition:all .2s;position:relative}.image-item:hover{transform:translateY(-4px);box-shadow:0 4px 12px rgba(0,0,0,.3);border-color:var(--w-color-secondary-100)}.image-item.selected{border-color:var(--w-color-secondary-100);box-shadow:0 0 0 3px var(--w-color-secondary-75)}.image-checkbox{position:absolute;top:.75rem;left:.75rem;z-index:10;width:24px;height:24px;cursor:pointer;accent-color:var(--w-color-secondary)}.image-thumb{width:100%;height:220px;overflow:hidden;background:var(--w-color-black);display:flex;align-items:center;justify-content:center;position:relative;border-bottom:2px solid var(--w-color-border-furniture)}.image-thumb img{width:100%;height:100%;object-fit:cover}.image-info{padding:1rem;background:var(--w-surface-menus)}.image-info h3{margin:0 0 .75rem;font-size:.9375rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.image-info h3 a{color:var(--w-color-text-context);text-decoration:none}.image-info h3 a:hover{color:var(--w-color-secondary-100)}.image-meta{color:var(--w-color-text-meta);font-size:.8125rem;margin-bottom:1rem;line-height:1.6}.image-meta-row{display:flex;justify-content:space-between;margin-bottom:2px}.image-actions{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}.image-actions .button{font-size:.875rem!important}.header-badge{display:inline-block;padding:.25rem .875rem;border-radius:20px;font-size:.875rem;font-weight:600;margin-left:.75rem;background:var(--w-color-secondary);color:var(--w-color-white)}.breadcrumb{display:flex;align-items:center;gap:.5rem;margin-bottom:1rem;font-size:.875rem;color:var(--w-color-text-label)}.breadcrumb a{color:var(--w-color-secondary-100);text-decoration:none;font-weight:500}.header-merged h1{color:var(--w-color-text-context)!important}.custom-modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:9998;display:none;opacity:0;transition:opacity .2s ease-in-out}.custom-modal-overlay.visible{display:block;opacity:1}.custom-modal-wrapper{position:fixed;top:50%;left:50%;width:90%;max-width:600px;background:var(--w-surface-menus);border-radius:8px;z-index:9999;box-shadow:0 5px 20px rgba(0,0,0,.3);display:none;opacity:0;transition:opacity .2s ease-in-out,transform .2s ease-in-out;transform:translate(-50%,-45%)}.custom-modal-wrapper.visible{display:block;opacity:1;transform:translate(-50%,-50%)}.custom-modal-wrapper .modal-header{padding:1.5rem;border-bottom:1px solid var(--w-color-border-furniture)}.custom-modal-wrapper .modal-header h1{font-size:1.25rem;margin:0}.custom-modal-wrapper .modal-body{padding:1.5rem;max-height:60vh;overflow-y:auto}.custom-modal-wrapper .modal-footer{padding:1.5rem;border-top:1px solid var(--w-color-border-furniture);display:flex;justify-content:flex-end;gap:.5rem}
+
+    .actions-toolbar {
+        background: var(--w-color-surface-field, #2a2a2a) !important;
+        border: 1px solid var(--w-color-border-furniture, #444) !important;
+        border-left: 4px solid #26b5a9 !important;
+        border-radius: 6px;
+        padding: 0.85rem 1.25rem;
+        margin-bottom: 1.5rem;
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .actions-toolbar.active {
+        display: flex;
+    }
+    .selection-info {
+        color: var(--w-color-text-context, #eee) !important;
+        font-weight: 600;
+        font-size: 0.95rem;
+    }
+    .bulk-actions {
+        display: flex;
+        gap: 0.6rem;
+    }
+    .bulk-actions .button {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 14px;
+        font-size: 0.85rem;
+        border-radius: 4px;
+    }
+    #move-selected-btn {
+        background: #26b5a9;
+        color: #111;
+        font-weight: 600;
+        border: none;
+    }
+    #move-selected-btn:hover {
+        background: #2dd4bf;
+    }
+    #delete-selected-btn {
+        background: #ef4444;
+        color: #fff;
+        font-weight: 600;
+        border: none;
+    }
+    #delete-selected-btn:hover {
+        background: #dc2626;
+    }
+
+/* --- Стили для Drag & Drop зоны --- */
+
+.upload-zone {
+    border: 3px dashed var(--w-color-border-furniture);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    background: var(--w-surface-menus);
+    transition: all 0.2s ease-in-out;
+    color: var(--w-color-text-context);
+}
+
+.upload-zone h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* Состояние, когда файл перетаскивают НАД зоной */
+.upload-zone.dragover {
+    border-color: var(--w-color-secondary-100);
+    background: var(--w-color-secondary-600); /* Для темной темы */
+    border-style: solid;
+    transform: scale(1.01); /* Небольшой эффект "приподнимания" */
+}
+
+/* Адаптация для светлой темы */
+[data-theme="light"] .upload-zone.dragover {
+    background: var(--w-color-secondary-50);
+}
+
+/* Выравнивание шапки и кнопок в одну линию */
+    header.merged .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .header-actions-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .header-actions-group .button {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 12px;
+        font-size: 0.85rem;
+        border-radius: 4px;
+        background: var(--w-color-surface-field, #262626);
+        border: 1px solid var(--w-color-border-furniture, #444);
+        color: var(--w-color-text-context, #eee);
+        transition: all 0.15s ease;
+    }
+
+    .header-actions-group .button:hover {
+        border-color: #26b5a9;
+        color: #26b5a9;
+        transform: translateY(-1px);
+    }
+
+    /* Приглушенная плашка пустого состояния в тон темной теме */
+    .empty-directory-notice {
+        margin: 2rem 0;
+        padding: 2.5rem 1.5rem;
+        background: var(--w-color-surface-field, #222) !important;
+        border: 1px dashed var(--w-color-border-furniture, #444) !important;
+        border-radius: 8px;
+        text-align: center;
+        color: var(--w-color-text-meta, #888);
+    }
+    .empty-directory-notice p {
+        margin: 0;
+        font-size: 0.95rem;
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<header class="merged">
+    <div class="row nice-padding">
+        <div class="left">
+            <div class="breadcrumb" style="margin-bottom: 0.3rem;">
+                <a href="{% url 'wagtail_image_directories:navigator' %}">📁 {% trans "Navigator" %}</a>
+                <span> / </span>
+                <span>{{ year }}</span>
+                <span> / </span>
+                <span>{{ slug|default:_("uncategorized") }}</span>
+            </div>
+            <h1 style="margin: 0; display: inline-flex; align-items: center; gap: 10px;">
+                {{ year }}/{{ slug|default:_("uncategorized") }}
+                <span class="header-badge">{{ total_count }}</span>
+            </h1>
+        </div>
+
+        <div class="right">
+            <div class="header-actions-group">
+                <a href="{% url 'wagtail_image_directories:navigator' %}" class="button">
+                    ⬅ {% trans "Back" %}
+                </a>
+                <button type="button" id="rename-current-dir-btn" class="button">
+                    ✏️ {% trans "Rename" %}
+                </button>
+                <button type="button" id="merge-current-dir-btn" class="button">
+                    📂 {% trans "Merge" %}
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="nice-padding" id="image-list-container"
+     data-delete-url="{% url 'wagtail_image_directories:bulk_delete_images' %}"
+     data-move-url="{% url 'wagtail_image_directories:bulk_move_images' %}"
+     data-move-chooser-url="{% url 'wagtail_image_directories:image_move_chooser' %}"
+     data-upload-url="{% url 'wagtail_image_directories:ajax_upload_images' %}"
+     data-rename-dir-url="{% url 'wagtail_image_directories:rename_directory' %}"
+     data-merge-dir-url="{% url 'wagtail_image_directories:merge_directories' %}"
+     data-csrf-token="{{ csrf_token }}"
+     data-year="{{ year }}"
+     data-slug="{{ slug }}">
+
+    <div class="actions-toolbar" id="actions-toolbar">
+        <div class="selection-info">{% trans "Selected:" %} <span id="selected-count">0</span></div>
+        <div class="bulk-actions">
+            <button type="button" id="move-selected-btn" class="button">{% trans "Move" %}</button>
+            <button type="button" id="delete-selected-btn" class="button">{% trans "Delete" %}</button>
+        </div>
+    </div>
+
+    <!-- Upload zone -->
+    <div class="upload-zone" id="upload-zone">
+        <svg class="icon icon-upload" style="width: 48px; height: 48px; fill: var(--w-color-text-meta); opacity: 0.5; margin-bottom: 1rem;"><use href="#icon-upload"></use></svg>
+        <h3>{% trans "Drop images here" %}</h3>
+
+        <input type="file" id="zone-file-input" multiple accept="image/*" style="display: none;">
+        <button type="button" class="button button-small bicolor icon icon-plus" onclick="document.getElementById('zone-file-input').click();">
+            {% trans "Choose files" %}
+        </button>
+
+        <p style="margin-top: 1rem; color: var(--w-color-text-meta); font-size: 0.875rem;">
+            {% trans "Images will be uploaded to:" %} {{ year }}/{{ slug|default:_("uncategorized") }}
+        </p>
+    </div>
+
+    {% if images %}
+    <div class="image-grid" id="image-grid">
+        {% for image in images %}
+            {% include "wagtail_image_directories/_image_card.html" with image=image %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-directory-notice">
+        <p>{% trans "No images in this directory yet. Drag files into the box above or click 'Choose files'." %}</p>
+    </div>
+    {% endif %}
+
+    <div class="custom-modal-overlay" id="custom-modal-overlay"></div>
+    <div class="custom-modal-wrapper" id="custom-modal-wrapper">
+        <header class="modal-header"><h1>{% trans "Move images" %}</h1></header>
+        <div class="modal-body" id="custom-modal-body">
+            <div class="w-flex w-justify-center w-p-8"><div class="icon icon-spinner w-animate-spin" style="width: 3em; height: 3em;"></div></div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
