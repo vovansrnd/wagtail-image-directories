@@ -4,7 +4,7 @@
     <input type="checkbox" class="image-checkbox" data-id="{{ image.id }}">
 
     <div class="image-thumb">
-        <a href="{% url 'wagtailimages:edit' image.id %}?next={{ request.get_full_path|urlencode }}">
+        <a href="{% url 'wagtailimages:edit' image.id %}?next={{ current_folder_url|default:request.get_full_path|urlencode }}">
             {% if image.file %}
                 <img src="{{ image.file.url }}" alt="{{ image.title }}" loading="lazy">
             {% else %}
@@ -14,7 +14,7 @@
     </div>
 
     <div class="image-info">
-        <h3 title="{{ image.title }}"><a href="{% url 'wagtailimages:edit' image.id %}?next={{ request.get_full_path|urlencode }}">{{ image.title|truncatechars:35 }}</a></h3>
+        <h3 title="{{ image.title }}"><a href="{% url 'wagtailimages:edit' image.id %}?next={{ current_folder_url|default:request.get_full_path|urlencode }}">{{ image.title|truncatechars:35 }}</a></h3>
         <div class="image-meta">
             <div class="image-meta-row">
                 <span>{{ image.width }}×{{ image.height }}</span>
@@ -23,7 +23,7 @@
             <div class="image-meta-row"><span>{{ image.created_at|date:"d.m.Y H:i" }}</span></div>
         </div>
         <div class="image-actions">
-            <a href="{% url 'wagtailimages:edit' image.id %}?next={{ request.get_full_path|urlencode }}" class="button button-small button-secondary icon icon-edit">{% trans "Edit" %}</a>
+            <a href="{% url 'wagtailimages:edit' image.id %}?next={{ current_folder_url|default:request.get_full_path|urlencode }}" class="button button-small button-secondary icon icon-edit">{% trans "Edit" %}</a>
             <button type="button" class="button button-small button-primary js-copy-url-btn icon icon-link"
                     data-image-url="{{ image.file.url }}">
                 URL

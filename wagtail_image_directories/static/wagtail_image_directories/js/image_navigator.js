@@ -191,4 +191,60 @@
 
     console.log('Universal observer is active.');
   });
+  // --- ПЕРЕХВАТ РЕДИРЕКТА ПРИ УДАЛЕНИИ И РЕДАКТИРОВАНИИ ---
+    function patchDeleteAndEditForms() {
+      const currentUrl = new URL(window.location.href);
+      let nextParam = currentUrl.searchParams.get('next');
+
+      // Если next не был в текущем URL, проверим, не лежит ли он внутри referrer
+      if (!nextParam && document.referrer) {
+        try {
+          const refUrl = new URL(document.referrer);
+          nextParam = refUrl.searchParams.get('next');
+        } catch (e) {}
+      }
+
+      // 1. Если мы на странице редактирования /admin/images/<id>/
+      if (/^\/admin\/images\/\d+\/(?:edit\/)?$/.test(window.location.pathname)) {
+        const deleteLink = document.querySelector('a[href*="/delete/"]');
+        if (deleteLink && nextParam) {
+          const delUrl = new URL(deleteLink.href, window.location.origin);
+          delUrl.searchParams.set('next', nextParam);
+          deleteLink.href = delUrl.toString();
+        }
+      }
+
+      // 2. Если мы на странице подтверждения удаления /admin/images/<id>/delete/
+      if (window.location.pathname.includes('/delete/')) {
+        const deleteForm = document.querySelector('form[action*="/delete/"]');
+        if (deleteForm) {
+          // Выбираем строго адрес папки, а не саму удаляемую картинку!
+          let targetReturn = nextParam;
+
+          // Если в referrer был прямой адрес папки навигатора
+          if (!targetReturn && document.referrer && document.referrer.includes('filtered')) {
+            targetReturn = document.referrer;
+          }
+
+          if (targetReturn) {
+            // Если внутри targetReturn был закодирован вложенный URL, декодируем его
+            try {
+              targetReturn = decodeURIComponent(targetReturn);
+            } catch (e) {}
+
+            let nextInput = deleteForm.querySelector('input[name="next"]');
+            if (!nextInput) {
+              nextInput = document.createElement('input');
+              nextInput.type = 'hidden';
+              nextInput.name = 'next';
+              deleteForm.appendChild(nextInput);
+            }
+            nextInput.value = targetReturn;
+            console.log('[image_navigator] Final delete redirect set to folder:', targetReturn);
+          }
+        }
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', patchDeleteAndEditForms);
 })();

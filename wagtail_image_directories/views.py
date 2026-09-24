@@ -11,10 +11,7 @@ from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
 from wagtail.images import get_image_model
 from django.db import transaction
-from django.db.models import Q
-from django.shortcuts import redirect
-from django.urls import reverse
-from wagtail.images.views.images import CreateView as WagtailImageCreateView
+
 
 
 from .models import ImageDirectory
@@ -178,12 +175,19 @@ def ajax_upload_images(request):
     Image = get_image_model()
     created_images_html = []
 
+    # Формируем правильный обратный URL текущей папки!
+    folder_url = reverse("wagtail_image_directories:filtered_images") + f"?year={year}&slug={slug}"
+
     for f in files:
         image = Image(title=f.name, file=f, year=year, slug=slug)
         image.save()
         card_html = render_to_string(
             "wagtail_image_directories/_image_card.html",
-            {"image": image, "request": request},
+            {
+                "image": image,
+                "request": request,
+                "current_folder_url": folder_url, # <-- Передаем точный URL папки!
+            },
         )
         created_images_html.append(card_html)
 
@@ -355,23 +359,3 @@ def image_move_chooser(request):
         request=request,
     )
     return JsonResponse({"html": modal_html, "step": "chooser"})
-
-
-class CustomImageCreateView(WagtailImageCreateView):
-    """Кастомный класс добавления картинки с умным редиректом обратно в папку."""
-
-    def get_success_url(self):
-        # 1. Если был передан параметр next — возвращаемся по нему
-        next_url = self.request.POST.get("next") or self.request.GET.get("next")
-        if next_url:
-            return next_url
-
-        # 2. Если у загруженного объекта есть year и slug — возвращаемся в текущую папку!
-        if hasattr(self.object, "year") and self.object.year:
-            return (
-                reverse("wagtail_image_directories:filtered_images")
-                + f"?year={self.object.year}&slug={self.object.slug}"
-            )
-
-        # Фолбэк на стандартное поведение Wagtail
-        return super().get_success_url()

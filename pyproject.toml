@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "wagtail-image-directories"
-version = "0.1.0"
+version = "0.1.1"
 description = "Directory-based storage (year/slug) and visual Image Navigator for Wagtail CMS."
 readme = "README.md"
 authors = [{ name = "Vladimir Tarasov" }]
