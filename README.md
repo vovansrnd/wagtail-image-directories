@@ -2,6 +2,8 @@
 
 Organize your Wagtail CMS media files into structured `year/slug` directories on disk with an interactive visual Image Navigator and bulk-action file manager in the Wagtail admin.
 
+![Wagtail Image Navigator Dashboard](https://raw.githubusercontent.com/vovansrnd/wagtail-image-directories/main/navigator-preview.png)
+
 ## Features
 - **Structured Storage**: Images are physically organized on disk as `media/images/{year}/{slug}/filename.ext`.
 - **Image Navigator**: A dashboard grouped by root directories (years) with real-time statistics (file count, total size, last updated).
