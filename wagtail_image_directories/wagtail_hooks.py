@@ -3,6 +3,7 @@ from django.templatetags.static import static
 from django.urls import include, path, reverse
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
+from django.utils.text import slugify
 from wagtail import hooks
 from wagtail.admin.menu import MenuItem
 
@@ -45,6 +46,6 @@ def process_new_directory_image(request, image):
     slug = request.POST.get("slug") or request.GET.get("slug")
 
     if year:
-        image.year = str(year).strip()
+        image.year = slugify(str(year).strip(), allow_unicode=True) or "misc"
     if slug is not None:
-        image.slug = str(slug).strip()
+        image.slug = slugify(str(slug).strip(), allow_unicode=True)

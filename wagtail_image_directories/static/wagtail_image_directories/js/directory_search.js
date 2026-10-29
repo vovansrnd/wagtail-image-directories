@@ -40,8 +40,12 @@
 
         function escapeHtml(str) {
             const div = document.createElement('div');
-            div.textContent = str;
+            div.textContent = String(str);
             return div.innerHTML;
+        }
+
+        function escapeRegExp(str) {
+            return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         }
 
         function renderResults(results, query) {
@@ -52,8 +56,8 @@
                 return;
             }
 
-            // Регулярка для поиска без учета регистра
-            const regex = new RegExp(`(${query})`, 'gi');
+            // Регулярка для поиска без учета регистра (спецсимволы экранированы)
+            const regex = new RegExp(`(${escapeRegExp(query)})`, 'gi');
 
             resultsBox.innerHTML = results.map((r, i) => {
                 // Сначала экранируем HTML, чтобы ничего не сломать
@@ -61,7 +65,7 @@
                 // Затем оборачиваем совпадение в тег <mark>
                 let highlightedLabel = safeLabel.replace(regex, '<mark class="search-highlight">$1</mark>');
 
-                return `<a href="${r.url}" class="search-result-item" data-index="${i}">${highlightedLabel}</a>`;
+                return `<a href="${escapeHtml(r.url)}" class="search-result-item" data-index="${i}">${highlightedLabel}</a>`;
             }).join('');
 
             resultsBox.style.display = 'block';

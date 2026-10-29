@@ -1,21 +1,34 @@
-import os
+import posixpath
 from django.db import models
 from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
-from wagtail.images.models import AbstractImage, Image
+from wagtail.images.models import AbstractImage, Image, WagtailImageField
 from wagtail.models import Collection
+
+
+def directory_image_upload_to(instance, filename):
+    """Return the on-disk path for an image using its year/slug metadata.
+
+    This function is wired to the inherited image ``file`` field below. Keeping
+    it at module scope also makes it importable by Django migrations.
+    """
+    root = slugify(str(getattr(instance, "year", "") or "misc"), allow_unicode=True) or "misc"
+    raw_slug = getattr(instance, "slug", "") or ""
+    sub = slugify(str(raw_slug), allow_unicode=True) if raw_slug else ""
+    parts = ["images", root] + ([sub] if sub else [])
+    basename = posixpath.basename(str(filename).replace("\\", "/"))
+    return posixpath.join(*parts, basename)
 
 
 class ImageDirectory(models.Model):
     year = models.CharField(max_length=50, db_index=True, verbose_name=_("Root directory"))
-    slug = models.SlugField(blank=True, max_length=255, db_index=True, verbose_name=_("Sub-directory (slug)"))
+    slug = models.SlugField(blank=True, max_length=255, db_index=True, allow_unicode=True, verbose_name=_("Sub-directory (slug)"))
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         constraints = [
             models.UniqueConstraint(fields=["year", "slug"], name="unique_image_directory"),
         ]
-        indexes = [models.Index(fields=["year", "slug"])]
         ordering = ["-year", "slug"]
         verbose_name = _("Image directory")
         verbose_name_plural = _("Image directories")
@@ -25,8 +38,19 @@ class ImageDirectory(models.Model):
 
 
 class AbstractDirectoryImage(AbstractImage):
+    # Override Wagtail's default ``original_images/`` upload path. Without this
+    # field override, ``get_upload_to`` below would only affect later moves from
+    # the Image Navigator; uploads through other Wagtail endpoints would remain
+    # in the default flat folder.
+    file = WagtailImageField(
+        upload_to=directory_image_upload_to,
+        width_field="width",
+        height_field="height",
+        max_length=1024,
+    )
+
     year = models.CharField(max_length=50, default="misc", db_index=True, verbose_name=_("Root directory"))
-    slug = models.SlugField(blank=True, max_length=255, db_index=True, verbose_name=_("Sub-directory (slug)"))
+    slug = models.SlugField(blank=True, max_length=255, db_index=True, allow_unicode=True, verbose_name=_("Sub-directory (slug)"))
 
     admin_form_fields = Image.admin_form_fields + ("year", "slug")
 
@@ -72,10 +96,8 @@ class AbstractDirectoryImage(AbstractImage):
         return safe or "misc"
 
     def get_upload_to(self, filename):
-        root = self._sanitize_folder(self.year)
-        sub = self._sanitize_folder(self.slug) if self.slug else ""
-        parts = ["images", root] + ([sub] if sub else [])
-        return os.path.join(*parts, filename)
+        """Compatibility helper used when relocating existing stored files."""
+        return directory_image_upload_to(self, filename)
 
     def save(self, *args, **kwargs):
         if not self.collection_id or self.collection == Collection.get_first_root_node():

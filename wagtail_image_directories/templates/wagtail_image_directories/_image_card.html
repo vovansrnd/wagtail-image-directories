@@ -6,7 +6,8 @@
     <div class="image-thumb">
         <a href="{% url 'wagtailimages:edit' image.id %}?next={{ current_folder_url|default:request.get_full_path|urlencode }}">
             {% if image.file %}
-                <img src="{{ image.file.url }}" alt="{{ image.title }}" loading="lazy">
+                {% image image fill-150x150 as card_thumb %}
+                <img src="{{ card_thumb.url }}" alt="{{ image.title }}" loading="lazy" width="150" height="150">
             {% else %}
                 <div class="no-image"><span>{% trans "File missing" %}</span></div>
             {% endif %}
@@ -18,7 +19,7 @@
         <div class="image-meta">
             <div class="image-meta-row">
                 <span>{{ image.width }}×{{ image.height }}</span>
-                <span>{{ image.get_file_size|filesizeformat }}</span>
+                <span>{{ image.file_size|filesizeformat }}</span>
             </div>
             <div class="image-meta-row"><span>{{ image.created_at|date:"d.m.Y H:i" }}</span></div>
         </div>
