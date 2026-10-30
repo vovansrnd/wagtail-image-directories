@@ -16,7 +16,6 @@ from django.utils.text import slugify
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
 from wagtail.images import get_image_model
-from wagtail.images.permissions import permission_policy
 from django.db import transaction
 
 
@@ -24,6 +23,17 @@ from django.db import transaction
 from .models import ImageDirectory
 
 logger = logging.getLogger(__name__)
+
+
+def _image_permission_policy():
+    """Resolve Wagtail's image policy after the image app is ready.
+
+    Wagtail 8 deprecates importing ``wagtail.images.permissions.permission_policy``
+    at module import time; the policy registry is the supported lookup path.
+    """
+    from wagtail.permissions import policy_registry
+
+    return policy_registry.get_by_type(get_image_model())
 
 
 def _clean_year(value):
@@ -52,7 +62,7 @@ def _int_ids(raw_ids):
 
 def _images_user_can(user, action):
     """Queryset of images for which this user has the given Wagtail permission."""
-    return permission_policy.instances_user_has_any_permission_for(user, [action])
+    return _image_permission_policy().instances_user_has_any_permission_for(user, [action])
 
 
 def _visible_directories(user, year=None):
@@ -286,7 +296,7 @@ def ajax_upload_images(request):
         # to upload to the requested destination collection.
         with transaction.atomic():
             probe.collection = probe.get_or_create_collection()
-            if not permission_policy.user_has_permission_for_instance(request.user, "add", probe):
+            if not _image_permission_policy().user_has_permission_for_instance(request.user, "add", probe):
                 raise PermissionError
     except PermissionError:
         return JsonResponse({"success": False, "error": "Нет права загружать изображения в эту коллекцию."}, status=403)
@@ -385,7 +395,7 @@ def _move_queryset_to_directory(images, dst_year, dst_slug, user):
     probe = Image(title="__permission_check__", year=dst_year, slug=dst_slug)
     target_collection = probe.get_or_create_collection()
     probe.collection = target_collection
-    if not permission_policy.user_has_permission_for_instance(user, "add", probe):
+    if not _image_permission_policy().user_has_permission_for_instance(user, "add", probe):
         raise PermissionError("Недостаточно прав для перемещения в целевую коллекцию.")
 
     moved = 0
