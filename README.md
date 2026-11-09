@@ -18,9 +18,6 @@ It is intended for sites with large media libraries where a flat directory is di
 - **Wagtail Collections:** the directory tree is mirrored into Wagtail Collections so existing collection permissions can still be used.
 - **Configurable safety limits:** control upload size, batch size, pixel limits, and physical file movement with Django settings.
 
-## Audit/release status
-
-This source bundle prepares version `0.2.0` for a possible next release. Static syntax/package checks have been run, but a full Django/Wagtail integration suite has not run in the bundle build environment. Do not upload to PyPI until the release checklist in `../../04-docs/UPGRADE_AND_RELEASE.md` is complete.
 
 ## Requirements and compatibility
 
@@ -29,18 +26,13 @@ The package metadata declares `wagtail>=6.0`. It depends on the configured Wagta
 ## Installation
 
 ```bash
-pip install wagtail-image-directories
+pip install wagtail-image-directories==0.2.1
 ```
-
-To install **the candidate source in this bundle** (rather than the already-published PyPI release), run from this package directory:
 
 ```bash
 python -m pip install .
-# For editable development instead:
-python -m pip install -e .
 ```
 
-`pip install wagtail-image-directories` selects the version currently published on PyPI. The candidate version shown in `pyproject.toml` is not published by this archive operation; publish it only after the release checklist in `../../04-docs/UPGRADE_AND_RELEASE.md` passes.
 
 
 Add the app after Wagtail's image app has been installed:

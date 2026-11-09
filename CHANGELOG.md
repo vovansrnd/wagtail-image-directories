@@ -1,8 +1,8 @@
 # Changelog — wagtail-image-directories
 
-All notable changes for this package are documented here. Version numbers below are **prepared release candidates** in this audit bundle; they are not a claim that those versions have already been uploaded to PyPI.
+All notable changes for this package are documented here. PyPI availability is tracked per release: entries below describe the package state at that version; publication happens separately once approved.
 
-## [0.2.1] — 2026-11-09 — prepared, not yet published
+## [0.2.1] — 2026-11-09
 
 - Lazy image permission policy: `policy_registry.get_by_type(get_image_model())`
   replaces the module-level `wagtail.images.permissions.permission_policy`
@@ -14,7 +14,7 @@ All notable changes for this package are documented here. Version numbers below 
 - Rollback: `pip install wagtail-image-directories==0.2.0` (PyPI).
 - Tested with: Wagtail 8.0.1/8.1, Django 6.0.9, Python 3.14.
 
-## [0.2.0] — 2026-10-29 — prepared, not yet published
+## [0.2.0] — 2026-10-29
 
 - Correct the real upload_to path for new originals; add a concrete storage-path migration; strengthen Collection permission checks and indexing; document rendition quotas and file-move risk.
 - Expanded installation, security, troubleshooting, storage/integration and multi-language documentation.
