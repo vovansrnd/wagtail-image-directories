@@ -2,6 +2,18 @@
 
 All notable changes for this package are documented here. Version numbers below are **prepared release candidates** in this audit bundle; they are not a claim that those versions have already been uploaded to PyPI.
 
+## [0.2.1] — 2026-11-09 — prepared, not yet published
+
+- Lazy image permission policy: `policy_registry.get_by_type(get_image_model())`
+  replaces the module-level `wagtail.images.permissions.permission_policy`
+  import that Wagtail 8 deprecated (warning noise on worker start;
+  forward-compatible with Wagtail 9).
+- Version bumped because PyPI's 0.2.0 predates the fix (5170ece); the
+  old wheel still works on Wagtail 8.1, this is prevention rather than
+  a breakage fix.
+- Rollback: `pip install wagtail-image-directories==0.2.0` (PyPI).
+- Tested with: Wagtail 8.0.1/8.1, Django 6.0.9, Python 3.14.
+
 ## [0.2.0] — 2026-10-29 — prepared, not yet published
 
 - Correct the real upload_to path for new originals; add a concrete storage-path migration; strengthen Collection permission checks and indexing; document rendition quotas and file-move risk.
