@@ -2,6 +2,14 @@
 
 All notable changes for this package are documented here. PyPI availability is tracked per release: entries below describe the package state at that version; publication happens separately once approved.
 
+## [0.2.2] — Unreleased
+
+- Default physical relocation of existing originals to off; directory operations update metadata and Wagtail Collections without changing stored file URLs.
+- Added a read-only media URL reference scanner for current Page content, common rich-text fields on other installed models (including forum posts/comments), historical Wagtail revisions, and concrete image relations.
+- Bulk deletion refuses to remove images referenced by scanned page content, revisions, or model relations; incomplete scans fail closed.
+- Explicit physical moves skip images found by the reference scan and report the skipped count.
+- `prune_unused_renditions` now retains filter specs referenced by URLs in current Page bodies and historical revisions; an incomplete scan aborts pruning.
+
 ## [0.2.1] — 2026-11-09
 
 - Lazy image permission policy: `policy_registry.get_by_type(get_image_model())`

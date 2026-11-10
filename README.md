@@ -16,7 +16,7 @@ It is intended for sites with large media libraries where a flat directory is di
 - **Directory operations:** create, rename, merge, and delete empty directory records; bulk move/delete operations check Wagtail image permissions.
 - **Admin previews:** directory cards use a real 150×150 rendition and read `file_size` from the database to avoid storage-size I/O on each card.
 - **Wagtail Collections:** the directory tree is mirrored into Wagtail Collections so existing collection permissions can still be used.
-- **Configurable safety limits:** control upload size, batch size, pixel limits, and physical file movement with Django settings.
+- **Configurable safety limits:** control upload size, batch size, pixel limits, and opt-in physical file movement with Django settings.
 
 
 ## Requirements and compatibility
@@ -114,10 +114,18 @@ The Navigator's upload limit defaults are 50 MiB per file, 30 files per batch, a
 WAGTAIL_IMAGE_DIRECTORIES_MAX_UPLOAD_SIZE = 50 * 1024 * 1024
 WAGTAIL_IMAGE_DIRECTORIES_MAX_UPLOADS = 30
 WAGTAIL_IMAGE_DIRECTORIES_MAX_PIXELS = 89_478_485
+WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES = False  # safe default
+```
+
+By default, directory rename/merge/bulk-move updates the image's directory metadata and Wagtail Collection but **does not relocate the stored original file**. New uploads are still written directly to `images/<year>/<slug>/` by the image field's `upload_to` function.
+
+Physical relocation is an explicit opt-in:
+
+```python
 WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES = True
 ```
 
-Set `WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES = False` only when your storage/operations design deliberately manages paths elsewhere. In that mode, directory metadata and physical paths may no longer match; document the consequences and test your storage adapter.
+When physical moves are enabled, the package scans current text/JSON fields on Wagtail Page models, common rich-text fields on other installed models (including forum posts and comments), saved Wagtail revisions, and concrete model relations before each move batch. Images found in those references are not physically moved; their old file paths are preserved and the response reports the number skipped. This scan cannot discover external backlinks, CDN copies, old browser caches, arbitrary CSS/JS, or third-party systems. Treat physical relocation as a migration: take a storage/database backup and run `python manage.py audit_image_references` first. Never infer that an image is safe to move or delete solely because this scanner found no reference.
 
 ## Permissions and operations
 

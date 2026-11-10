@@ -2,6 +2,17 @@
 
 console.log("--- admin_images.js ЗАГРУЖЕН (v6.2) ---");
 
+function physicalMoveNotice(data) {
+    if (data.physical_moves_enabled === false) {
+        return 'Файлы на диске не перемещались: физическое перемещение отключено по умолчанию. Метаданные и коллекции обновлены.';
+    }
+    if ((data.physical_moves_skipped || 0) > 0) {
+        return `Физическое перемещение пропущено для ${data.physical_moves_skipped} изображений, на которые найдены ссылки.`;
+    }
+    return '';
+}
+
+
 document.addEventListener('DOMContentLoaded', function() {
     // Определяем, на какой мы странице, и запускаем соответствующий код
     const imageListPage = document.getElementById('image-list-container');
@@ -152,7 +163,9 @@ function initImageListPage(container) {
                 if (data.success) {
                     imageIds.forEach(id => document.querySelector(`.image-item[data-id="${id}"]`)?.remove());
                     clearSelection();
-                    if (data.message) showMessage(data.message, 'success');
+                    const notice = physicalMoveNotice(data);
+                    const message = [data.message, notice].filter(Boolean).join(' ');
+                    if (message) showMessage(message, 'success');
                 } else { throw new Error(data.error); }
             }).catch(err => showMessage(err.message || 'Ошибка перемещения.', 'error'));
     }
@@ -336,6 +349,8 @@ function initImageListPage(container) {
                 const ct = r.headers.get('content-type') || '';
                 const data = ct.includes('application/json') ? await r.json() : { success: false, error: await r.text() };
                 if (!r.ok || !data.success) throw new Error(data.error || `HTTP ${r.status}`);
+                const notice = physicalMoveNotice(data);
+                if (notice) alert(notice);
                 window.location.href = data.redirect_url;
             })
             .catch(err => alert(err.message || 'Ошибка переименования.'));
@@ -352,6 +367,8 @@ function initImageListPage(container) {
                 const ct = r.headers.get('content-type') || '';
                 const data = ct.includes('application/json') ? await r.json() : { success: false, error: await r.text() };
                 if (!r.ok || !data.success) throw new Error(data.error || `HTTP ${r.status}`);
+                const notice = physicalMoveNotice(data);
+                if (notice) alert(notice);
                 window.location.href = data.redirect_url;
             })
             .catch(err => alert(err.message || 'Ошибка слияния.'));

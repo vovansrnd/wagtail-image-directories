@@ -21,6 +21,7 @@ from django.db import transaction
 
 
 from .models import ImageDirectory
+from .references import find_referenced_images
 
 logger = logging.getLogger(__name__)
 
@@ -311,8 +312,9 @@ def ajax_upload_images(request):
     for f in files:
         image = Image(title=f.name, file=f, year=year, slug=slug)
         image.save()
-        if not _physically_move_image_file(image) and getattr(settings, "WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES", True):
-            warnings.append(f"Файл {f.name!r} сохранён, но физически переместить его в папку не удалось.")
+        if getattr(settings, "WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES", False):
+            if not _physically_move_image_file(image):
+                warnings.append(f"Файл {f.name!r} сохранён, но физически переместить его в папку не удалось.")
         card_html = render_to_string(
             "wagtail_image_directories/_image_card.html",
             {
@@ -334,7 +336,7 @@ def _physically_move_image_file(image):
     path remains valid. A failure to delete the old copy after the DB commit
     leaves an orphan duplicate, not a broken image URL.
     """
-    if not getattr(settings, "WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES", True):
+    if not getattr(settings, "WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES", False):
         return False
     if not image.file:
         return False
@@ -374,8 +376,14 @@ def _physically_move_image_file(image):
 # Physical storage operations are deliberately scheduled only after the database
 # transaction commits. Django cannot roll back a file move when a DB transaction
 # fails, so performing it inline can leave a committed row pointing at a missing file.
-def _schedule_physical_move(image):
-    if not getattr(settings, "WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES", True):
+def _schedule_physical_move(image, *, allow_move=True):
+    if not getattr(settings, "WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES", False):
+        return
+    if not allow_move:
+        logger.warning(
+            "Physical move skipped for referenced image id=%s; preserving existing media URLs",
+            image.pk,
+        )
         return
     Image = image.__class__
     image_id = image.pk
@@ -398,15 +406,35 @@ def _move_queryset_to_directory(images, dst_year, dst_slug, user):
     if not _image_permission_policy().user_has_permission_for_instance(user, "add", probe):
         raise PermissionError("Недостаточно прав для перемещения в целевую коллекцию.")
 
+    move_files = bool(getattr(settings, "WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES", False))
+    referenced_ids = set()
+    image_ids = list(images.values_list("pk", flat=True))
+    if move_files and image_ids:
+        # Physical moves can invalidate hard-coded Prose Editor rendition URLs.
+        # Scan current page bodies, all revisions and live model relations once
+        # per batch. Fail closed: an incomplete scan aborts the DB transaction.
+        try:
+            referenced_ids = set(find_referenced_images(image_ids))
+        except Exception as exc:
+            logger.exception("Cannot verify image references before physical relocation")
+            raise RuntimeError(
+                "Нельзя безопасно переместить файлы: не удалось проверить ссылки в body/revisions."
+            ) from exc
+
     moved = 0
+    physical_skipped = 0
     for image in images.iterator(chunk_size=200):
         image.year = dst_year
         image.slug = dst_slug
         image.collection = target_collection
         image.save()
-        _schedule_physical_move(image)
+        if move_files and image.pk in referenced_ids:
+            physical_skipped += 1
+            _schedule_physical_move(image, allow_move=False)
+        else:
+            _schedule_physical_move(image)
         moved += 1
-    return moved
+    return moved, physical_skipped, move_files
 
 
 def _move_images_between_dirs(src_year, src_slug, dst_year, dst_slug, user):
@@ -437,7 +465,7 @@ def rename_directory(request):
 
     try:
         with transaction.atomic():
-            moved = _move_images_between_dirs(src_year, src_slug, dst_year, dst_slug, request.user)
+            moved, physical_skipped, physical_enabled = _move_images_between_dirs(src_year, src_slug, dst_year, dst_slug, request.user)
             ImageDirectory.objects.get_or_create(year=dst_year, slug=dst_slug)
             ImageDirectory.objects.filter(year=src_year, slug=src_slug).exclude(year=dst_year, slug=dst_slug).delete()
 
@@ -447,6 +475,8 @@ def rename_directory(request):
             "moved": moved,
             "redirect_url": redirect_url,
             "message": f"Директория переименована. Перемещено: {moved}",
+            "physical_moves_skipped": physical_skipped,
+            "physical_moves_enabled": physical_enabled,
         })
     except PermissionError as exc:
         return JsonResponse({"success": False, "error": str(exc)}, status=403)
@@ -474,7 +504,7 @@ def merge_directories(request):
     try:
         with transaction.atomic():
             ImageDirectory.objects.get_or_create(year=dst_year, slug=dst_slug)
-            moved = _move_images_between_dirs(src_year, src_slug, dst_year, dst_slug, request.user)
+            moved, physical_skipped, physical_enabled = _move_images_between_dirs(src_year, src_slug, dst_year, dst_slug, request.user)
             ImageDirectory.objects.filter(year=src_year, slug=src_slug).delete()
 
         redirect_url = _folder_url(dst_year, dst_slug)
@@ -483,6 +513,8 @@ def merge_directories(request):
             "moved": moved,
             "redirect_url": redirect_url,
             "message": f"Директории слиты. Перемещено: {moved}",
+            "physical_moves_skipped": physical_skipped,
+            "physical_moves_enabled": physical_enabled,
         })
     except PermissionError as exc:
         return JsonResponse({"success": False, "error": str(exc)}, status=403)
@@ -531,6 +563,27 @@ def bulk_delete_images(request):
         return JsonResponse({"success": False, "error": "Недостаточно прав для одного или нескольких изображений."}, status=403)
     count = images.count()
 
+    # A direct URL embedded in current page content or a historical revision
+    # is not represented by a relational FK. Protect those images as well as
+    # ordinary live Page relations before deleting originals and renditions.
+    try:
+        references = find_referenced_images(requested_ids)
+    except Exception:
+        logger.exception("Could not verify image references before bulk deletion")
+        return JsonResponse({
+            "success": False,
+            "error": "Не удалось проверить использование изображений. Удаление отменено.",
+        }, status=503)
+
+    blocked = sorted(set(references) & requested_ids)
+    if blocked:
+        return JsonResponse({
+            "success": False,
+            "error": "Удаление отменено: некоторые изображения используются страницами, ревизиями или связанными объектами.",
+            "referenced_image_ids": blocked,
+            "reference_count": sum(len(references[image_id]) for image_id in blocked),
+        }, status=409)
+
     for img in images.iterator(chunk_size=200):
         img.delete()
 
@@ -558,9 +611,14 @@ def bulk_move_images(request):
 
         with transaction.atomic():
             ImageDirectory.objects.get_or_create(year=new_year, slug=new_slug)
-            moved_count = _move_queryset_to_directory(images, new_year, new_slug, request.user)
+            moved_count, physical_skipped, physical_enabled = _move_queryset_to_directory(images, new_year, new_slug, request.user)
 
-        return JsonResponse({"success": True, "message": f"Перемещено изображений: {moved_count}"})
+        return JsonResponse({
+            "success": True,
+            "message": f"Перемещено изображений: {moved_count}",
+            "physical_moves_skipped": physical_skipped,
+            "physical_moves_enabled": physical_enabled,
+        })
     except PermissionError as exc:
         return JsonResponse({"success": False, "error": str(exc)}, status=403)
     except Exception:
