@@ -23,6 +23,14 @@ It is intended for sites with large media libraries where a flat directory is di
 
 The package metadata declares `wagtail>=6.0`. It depends on the configured Wagtail image model and a writable media storage backend. The supplied source archive does not include an automated compatibility matrix for every Django/Wagtail version; test your exact versions and storage backend before deployment.
 
+The package metadata declares a minimum of `wagtail>=6.0`; that is the
+supported floor, not the full test matrix. The two tested configurations
+differ in kind: Wagtail 8.0.1 is covered by integration tests of the
+originating project with editable installs of this package, while
+Wagtail 8.1 was tested against the target production stack with clean
+wheel and sdist installs — both with Django 6.0.9 on Python 3.14.
+Other combinations may work but are not covered by the test suite.
+
 ## Installation
 
 ```bash
