@@ -30,10 +30,16 @@ old_config = runner.setup_databases()
 
 from io import BytesIO  # noqa: E402
 
+import tracemalloc  # noqa: E402
+
 from PIL import Image as PILImage  # noqa: E402
 
 from tests.testapp.models import DirectoryTestImage, ScannerPage  # noqa: E402
 from wagtail.models import Page  # noqa: E402
+from wagtail_image_directories.references import (  # noqa: E402
+    build_image_file_target_index,
+    find_referenced_images,
+    scan_content_and_revision_references)
 
 buf = BytesIO()
 PILImage.new("RGB", (32, 32), (5, 25, 45)).save(buf, format="JPEG")
@@ -50,24 +56,42 @@ page = root.add_child(instance=ScannerPage(
     body=f'<p><img src="{rendition.url}"></p>'))
 page.save_revision()
 
+# Масштаб: 10 000 страниц (половина со ссылкой на rendition),
+# 2 000 страниц с дополнительными ревизиями.
+PAGES = int(os.environ.get("BENCH_PAGES", "10000"))
+REVISION_PAGES = int(os.environ.get("BENCH_REVISION_PAGES", "2000"))
 t0 = time.perf_counter()
-for i in range(N):
-    page.body = f"<p><img src=\"{rendition.url}\"></p><p>ревизия {i}</p>"
-    page.save_revision()
-save_s = time.perf_counter() - t0
-print(f"создано {N} ревизий за {save_s:.2f}s")
+for i in range(PAGES):
+    body = (f'<p><img src="{rendition.url}"></p>' if i % 2 == 0
+            else f"<p>страница {i}</p>")
+    root.add_child(instance=ScannerPage(
+        title=f"Bench {i}", slug=f"bench-{i}", body=body))
+    if i % 1000 == 0:
+        print(f"  страниц создано: {i}", flush=True)
+for i, p in enumerate(ScannerPage.objects.filter(slug__startswith="bench-")
+                      .order_by("pk")[:REVISION_PAGES]):
+    p.body = f'<p><img src="{rendition.url}"></p><p>rev {i}</p>'
+    p.save_revision()
+create_s = time.perf_counter() - t0
+print(f"создано {PAGES} страниц + {REVISION_PAGES} ревизий за {create_s:.1f}s",
+      flush=True)
 
-from wagtail_image_directories.references import find_referenced_images  # noqa: E402
+tracemalloc.start()
+t0 = time.perf_counter()
+counters = scan_content_and_revision_references(
+    build_image_file_target_index({image.id}))
+scan_s = time.perf_counter() - t0
+current, peak = tracemalloc.get_traced_memory()
+tracemalloc.stop()
+print(f"СКАН (текущий контент + все ревизии): {scan_s:.2f}s; "
+      f"просмотрено записей: {counters}; память: текущая {current / 1e6:.1f} MB, "
+      f"пик {peak / 1e6:.1f} MB", flush=True)
 
-times = []
-for attempt in range(3):
-    t0 = time.perf_counter()
-    refs = find_referenced_images({image.id})
-    dt = time.perf_counter() - t0
-    times.append(dt)
-    print(f"скан #{attempt + 1}: {dt * 1000:.1f} ms "
-          f"(ссылок на изображение: {len(refs.get(image.id, []))})")
-best = min(times)
-print(f"ИТОГ: полный скан (текущий контент + {N} ревизий): {best * 1000:.1f} ms "
-      f"(лучший из 3 прогонов)")
+t0 = time.perf_counter()
+refs = find_referenced_images({image.id})
+find_s = time.perf_counter() - t0
+print(f"find_referenced_images: {find_s * 1000:.1f} ms; "
+      f"ссылок на bench-изображение: {len(refs.get(image.id, []))}", flush=True)
+print(f"ИТОГ: {PAGES} страниц, {REVISION_PAGES} ревизий: скан {scan_s:.2f}s, "
+      f"память пик {peak / 1e6:.1f} MB", flush=True)
 runner.teardown_databases(old_config)
