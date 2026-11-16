@@ -50,8 +50,8 @@ DATABASES = {
     "default": {
         "ENGINE": os.environ.get("TEST_DB_ENGINE", "django.db.backends.postgresql"),
         "NAME": os.environ.get("TEST_DB_NAME", "d67imgtest"),
-        "USER": os.environ.get("TEST_DB_USER", "a1020391_django_radio"),
-        "PASSWORD": os.environ.get("TEST_DB_PASSWORD", ""),
+        "USER": os.environ["TEST_DB_USER"],
+        "PASSWORD": os.environ["TEST_DB_PASSWORD"],
         "HOST": os.environ.get("TEST_DB_HOST", "127.0.0.1"),
         "PORT": os.environ.get("TEST_DB_PORT", "5432"),
     }
