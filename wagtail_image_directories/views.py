@@ -27,12 +27,18 @@ logger = logging.getLogger(__name__)
 
 
 def _image_permission_policy():
-    """Resolve Wagtail's image policy after the image app is ready.
+    """Resolve Wagtail's image policy across the supported Wagtail versions.
 
-    Wagtail 8 deprecates importing ``wagtail.images.permissions.permission_policy``
-    at module import time; the policy registry is the supported lookup path.
+    Wagtail 8+ exposes the policy registry (``wagtail.permissions.policy_registry``)
+    and deprecates the module-level ``permission_policy`` import; Wagtail 6/7
+    only provide the module-level policy. Import lazily and prefer the
+    registry when available, falling back to the classic policy otherwise.
     """
-    from wagtail.permissions import policy_registry
+    try:
+        from wagtail.permissions import policy_registry
+    except ImportError:  # Wagtail < 8.0: реестра политик ещё нет
+        from wagtail.images.permissions import permission_policy
+        return permission_policy
 
     return policy_registry.get_by_type(get_image_model())
 
