@@ -32,5 +32,6 @@ import django.conf  # noqa: E402
 from django.test.utils import get_runner  # noqa: E402
 
 runner = get_runner(django.conf.settings)(interactive=False, verbosity=1)
-failures = runner.run_tests(["tests.test_safety"])
+# Оба набора: интеграционные операции + unit-тесты сканера
+failures = runner.run_tests(["tests.test_safety", "tests.test_references_utils"])
 sys.exit(bool(failures))

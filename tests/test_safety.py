@@ -82,27 +82,6 @@ class BulkDeleteTests(SafetyTestBase):
         """Ссылка осталась только в сохранённой ревизии: 409."""
         self.page.body = "<p>ссылка убрана из текущего контента</p>"
         self.page.save_revision()
-        from wagtail_image_directories.references import (find_referenced_images,
-            build_image_file_target_index, _iter_current_content_sources)
-        direct = find_referenced_images({self.image.id})
-        idx = build_image_file_target_index({self.image.id})
-        sources = [(getattr(s, "pk", None), text[:70]) for s, text in _iter_current_content_sources()]
-        print(f"[test_debug] прямой вызов: {direct}")
-        print(f"[test_debug] target_index: {idx}")
-        print(f"[test_debug] источники контента: {sources}")
-        print(f"[test_debug] ревизий: {self.page.revisions.count()}, body: {self.page.body[:60]!r}")
-        Rend = type(self.image).get_rendition_model()
-        print(f"[test_debug] rendition model: {Rend.__module__}.{Rend.__name__}")
-        print(f"[test_debug] rendition rows: {list(Rend.objects.filter(image_id=self.image.id).values_list('id', 'filter_spec', 'file'))}")
-        print(f"[test_debug] self.rendition: id={self.rendition.id} file={self.rendition.file.name!r} image_id={self.rendition.image_id}")
-        print(f"[test_debug] rendition table: {Rend._meta.db_table}, all rows: {list(Rend.objects.all().values_list('id', 'image_id', 'file'))}")
-        print(f"[test_debug] image rows: {list(DirectoryTestImage.objects.all().values_list('id', 'file'))}")
-        from django.db import connection
-        print(f"[test_debug] DB: {connection.settings_dict['NAME']}")
-        print(f"[test_debug] rendition class: {type(self.rendition).__module__}.{type(self.rendition).__name__} _state.db={self.rendition._state.db!r} _state.adding={self.rendition._state.adding!r}")
-        with connection.cursor() as cur:
-            cur.execute("SELECT id, image_id, file FROM testapp_directorytestrendition")
-            print(f"[test_debug] raw SQL rows: {cur.fetchall()}")
         response = self._post_delete(self.image)
         self.assertEqual(response.status_code, 409, response.content)
         self.assertTrue(DirectoryTestImage.objects.filter(id=self.image.id).exists())
@@ -149,6 +128,9 @@ class PhysicalMoveTests(SafetyTestBase):
                                              unreferenced.file.name)
         self.assertTrue(os.path.exists(old_referenced_path))
         self.assertTrue(os.path.exists(old_unreferenced_path))
+        # Исходные имена файлов — база для проверки «путь в БД сохранён»
+        referenced_original_name = self.image.file.name
+        unreferenced_original_name = unreferenced.file.name
 
         # Физические переносы планируются через transaction.on_commit —
         # в TestCase исполняем колбэки явно.
@@ -162,16 +144,43 @@ class PhysicalMoveTests(SafetyTestBase):
         # Ссылочное: старый путь сохранён, файл не перемещён.
         self.assertTrue(os.path.exists(old_referenced_path),
                         "файл ссылочного изображения не должен перемещаться")
-        self.assertEqual(self.image.file.name, self.image.file.name)  # путь прежний
-        # Неподссылочное: файл на новом пути, на старом отсутствует
-        # (in-memory объект обновляем из БД: перенос выполнен в
-        # on_commit-колбэке с собственным re-fetch).
+        self.image.refresh_from_db()
+        self.assertEqual(self.image.file.name, referenced_original_name,
+                         "имя файла ссылочного изображения в БД должно "
+                         "сохраниться (защита от перемещения)")
+        # Неподссылочное: имя файла в БД изменилось на новую директорию
+        # (сравнение с сохранённым исходным именем, не tautology), файл
+        # физически на новом пути и отсутствует на старом.
         unreferenced.refresh_from_db()
+        self.assertNotEqual(unreferenced.file.name, unreferenced_original_name)
         self.assertIn("/2026/dst/", unreferenced.file.name)
         new_unreferenced_path = os.path.join(unreferenced.file.storage.location,
                                              unreferenced.file.name)
         self.assertTrue(os.path.exists(new_unreferenced_path))
         self.assertFalse(os.path.exists(old_unreferenced_path))
+
+    @override_settings(WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True)
+    def test_rename_fails_closed_on_scanner_error(self):
+        """Fail-closed при отказе сканера перед физическим переносом:
+        операция отменена (500), БД-состояние и физические файлы
+        сохранены в прежнем виде."""
+        unreferenced = self._unreferenced_image()
+        old_name = unreferenced.file.name
+        old_path = os.path.join(unreferenced.file.storage.location, old_name)
+        self.assertTrue(os.path.exists(old_path))
+
+        with mock.patch("wagtail_image_directories.views.find_referenced_images",
+                        side_effect=RuntimeError("scanner down")):
+            response = self._rename()
+
+        self.assertEqual(response.status_code, 500, response.content)
+        # БД-состояние не изменилось: изображение осталось в исходной директории
+        unreferenced.refresh_from_db()
+        self.assertEqual(unreferenced.year, "2026")
+        self.assertEqual(unreferenced.slug, "src")
+        self.assertEqual(unreferenced.file.name, old_name)
+        # Физический файл на месте
+        self.assertTrue(os.path.exists(old_path))
 
     def test_rename_without_move_files_keeps_files_in_place(self):
         """MOVE_FILES=False (по умолчанию): физически ничего не переносится."""

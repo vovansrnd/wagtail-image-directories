@@ -1,4 +1,4 @@
-"""Настройки интеграционных тестов wagtail-image-directories (sqlite, tmp media)."""
+"""Настройки интеграционных тестов wagtail-image-directories (PostgreSQL по умолчанию, tmp media)."""
 import tempfile
 
 import os
@@ -43,9 +43,9 @@ TEMPLATES = [{
         "django.contrib.messages.context_processors.messages",
     ]},
 }]
-# Тестовая БД: PostgreSQL по умолчанию (на sqlite in-memory Wagtail 6.4/8.1
-# демонстрировал исчезновение строки rendition из shared-memory таблицы —
-# anomaly задокументирована в досье Д68-Т/D67-А); переопределяется TEST_DB_* env.
+# Тестовая БД: PostgreSQL (TEST_DB_* env). SQLite in-memory использовать
+# не рекомендуется: на совместной in-memory БД наблюдалась потеря строки
+# rendition сразу после создания (зафиксировано в аудите Д67-А).
 DATABASES = {
     "default": {
         "ENGINE": os.environ.get("TEST_DB_ENGINE", "django.db.backends.postgresql"),
