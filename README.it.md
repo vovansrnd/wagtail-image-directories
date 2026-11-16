@@ -105,3 +105,8 @@ Se il flusso non funziona, controlla configurazione dell’app, migrazioni, ordi
 
 MIT. Codice sorgente: [https://github.com/vovansrnd/wagtail-image-directories](https://github.com/vovansrnd/wagtail-image-directories).
 
+## Note di rilascio 0.2.2
+
+- L'eliminazione in blocco delle immagini è protetta: le immagini referenziate dal contenuto delle pagine, dalle revisioni salvate o da modelli collegati restituiscono HTTP 409 e non vengono eliminate.
+- Durante lo spostamento fisico dei file (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`) i riferimenti vengono verificati prima: le immagini referenziate conservano i percorsi esistenti. Il valore predefinito è `False`.
+- L'audit dei riferimenti è eseguito dall'app blog del progetto principale (`python manage.py audit_image_references`); questo pacchetto fornisce solo lo scanner.

@@ -105,3 +105,8 @@ Als de workflow niet werkt, controleer appconfiguratie, migraties, URL-volgorde,
 
 MIT. Broncode: [https://github.com/vovansrnd/wagtail-image-directories](https://github.com/vovansrnd/wagtail-image-directories).
 
+## Releaseopmerkingen 0.2.2
+
+- Massaal verwijderen van afbeeldingen is beveiligd: afbeeldingen waarnaar pagina-inhoud, opgeslagen revisies of gerelateerde modellen verwijzen, geven HTTP 409 terug en worden niet verwijderd.
+- Bij fysiek verplaatsen van bestanden (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`) worden eerst de referenties gecontroleerd: gerefereerde afbeeldingen behouden hun bestaande paden. De standaardwaarde is `False`.
+- De referentieaudit wordt uitgevoerd door de blog-app van het hoofdproject (`python manage.py audit_image_references`); dit pakket levert alleen de scanner.

@@ -105,3 +105,8 @@ WAGTAILIMAGES_RENDITION_MODEL = "media.CustomRendition"
 
 MIT. 源代码: [https://github.com/vovansrnd/wagtail-image-directories](https://github.com/vovansrnd/wagtail-image-directories).
 
+## 0.2.2 版本说明
+
+- 图像批量删除受到保护：被页面内容、已保存修订或关联模型引用的图像会返回 HTTP 409，不会被删除。
+- 物理移动文件时 (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`) 会先检查引用：被引用的图像保留其现有路径。默认值为 `False`。
+- 引用审计由主项目的 blog 应用执行 (`python manage.py audit_image_references`)；本包仅提供扫描器。

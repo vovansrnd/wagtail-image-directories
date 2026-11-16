@@ -105,3 +105,8 @@ WAGTAILIMAGES_RENDITION_MODEL = "media.CustomRendition"
 
 MIT. 소스 코드: [https://github.com/vovansrnd/wagtail-image-directories](https://github.com/vovansrnd/wagtail-image-directories).
 
+## 0.2.2 릴리스 노트
+
+- 이미지 일괄 삭제는 보호됩니다: 페이지 본문, 저장된 리비전 또는 관련 모델이 참조하는 이미지는 HTTP 409을 반환하며 삭제되지 않습니다.
+- 파일을 물리적으로 이동할 때 (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`) 먼저 참조를 확인합니다. 참조된 이미지는 기존 경로를 유지합니다. 기본값은 `False`입니다.
+- 참조 감사는 메인 프로젝트의 blog 앱이 수행합니다 (`python manage.py audit_image_references`). 이 패키지는 스캐너만 제공합니다.

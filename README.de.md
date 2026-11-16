@@ -105,3 +105,8 @@ Wenn der Ablauf nicht funktioniert, prüfen Sie App-Konfiguration, Migrationen, 
 
 MIT. Quellcode: [https://github.com/vovansrnd/wagtail-image-directories](https://github.com/vovansrnd/wagtail-image-directories).
 
+## Versionshinweise 0.2.2
+
+- Das Massenlöschen von Bildern ist geschützt: Bilder, auf die Seiteninhalte, gespeicherte Revisionen oder verwandte Modelle verweisen, geben HTTP 409 zurück und werden nicht gelöscht.
+- Beim physischen Verschieben von Dateien (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`) werden zuerst die Referenzen geprüft: referenzierte Bilder behalten ihre vorhandenen Pfade. Standard ist `False` — ohne explizite Aktivierung wird nichts physisch verschoben.
+- Die Referenzprüfung führt die Blog-App des Hauptprojekts aus (`python manage.py audit_image_references`); dieses Paket liefert nur den Scanner. Das Löschen des Seiteninhalts und der Revisionen des Hauptprojekts ist ebenfalls geschützt.

@@ -105,3 +105,8 @@ Jeśli przepływ nie działa, sprawdź konfigurację aplikacji, migracje, kolejn
 
 MIT. Kod źródłowy: [https://github.com/vovansrnd/wagtail-image-directories](https://github.com/vovansrnd/wagtail-image-directories).
 
+## Informacje o wydaniu 0.2.2
+
+- Masowe usuwanie obrazów jest chronione: obrazy, do których odwołują się treści stron, zapisane rewizje lub powiązane modele, zwracają HTTP 409 i nie są usuwane.
+- Przy fizycznym przenoszeniu plików (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`) najpierw sprawdzane są odwołania: obrazy z odwołaniami zachowują istniejące ścieżki. Domyślnie `False`.
+- Audyt odwołań wykonuje aplikacja blogowa projektu głównego (`python manage.py audit_image_references`); ten pakiet dostarcza tylko skaner.

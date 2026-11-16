@@ -105,3 +105,8 @@ Se o fluxo não funcionar, confira a configuração do app, migrações, ordem d
 
 MIT. Código-fonte: [https://github.com/vovansrnd/wagtail-image-directories](https://github.com/vovansrnd/wagtail-image-directories).
 
+## Notas da versão 0.2.2
+
+- A exclusão em massa de imagens é protegida: imagens referenciadas pelo conteúdo de páginas, revisões salvas ou modelos relacionados retornam HTTP 409 e não são excluídas.
+- Ao mover arquivos fisicamente (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`), as referências são verificadas primeiro: as imagens referenciadas mantêm seus caminhos existentes. O padrão é `False`.
+- A auditoria de referências é feita pelo app de blog do projeto principal (`python manage.py audit_image_references`); este pacote fornece apenas o scanner.

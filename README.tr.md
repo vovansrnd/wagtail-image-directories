@@ -105,3 +105,8 @@ Akış çalışmıyorsa uygulama ayarlarını, geçişleri, URL sırasını, kul
 
 MIT. Kaynak kod: [https://github.com/vovansrnd/wagtail-image-directories](https://github.com/vovansrnd/wagtail-image-directories).
 
+## 0.2.2 Sürüm notları
+
+- Toplu görüntü silme korumalıdır: sayfa içeriği, kaydedilen revizyonlar veya ilişkili modeller tarafından referans verilen görüntüler HTTP 409 döndürür ve silinmez.
+- Dosyaları fiziksel olarak taşırken (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`) önce referanslar kontrol edilir: referans verilen görüntüler mevcut yollarını korur. Varsayılan `False`.
+- Referans denetimi ana projenin blog uygulaması tarafından yapılır (`python manage.py audit_image_references`); bu paket yalnızca tarayıcıyı sağlar.

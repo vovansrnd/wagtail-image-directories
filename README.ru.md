@@ -105,3 +105,8 @@ WAGTAILIMAGES_RENDITION_MODEL = "media.CustomRendition"
 
 MIT. Исходный код: [https://github.com/vovansrnd/wagtail-image-directories](https://github.com/vovansrnd/wagtail-image-directories).
 
+## Примечания к версии 0.2.2
+
+- Массовое удаление изображений защищено: изображения, на которые ссылаются содержимое страниц, сохранённые ревизии или связанные модели, возвращают HTTP 409 и не удаляются.
+- При физическом переносе файлов (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`) сначала проверяются ссылки: изображениям с ссылками сохраняются существующие пути. По умолчанию `False`.
+- Аудит ссылок выполняет blog-приложение основного проекта (`python manage.py audit_image_references`); этот пакет поставляет только сканер.
