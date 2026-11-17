@@ -1,4 +1,3 @@
-=== Окружение прогона: Python 3.14.4 / Django 5.1.15 / Wagtail 6.4 / PostgreSQL 14.15 (сервер), psycopg2 2.9.13 ===
 Creating test database for alias 'default'...
 проверяемый пакет (wheel): /opt/MyApps/wagtail/d67-release-audit/clean2-image-directories-venv/lib/python3.14/site-packages/wagtail_image_directories/__init__.py
 Found 15 test(s).
@@ -67,8 +66,7 @@ RuntimeError: Нельзя безопасно переместить файлы:
 .Physical move skipped for referenced image id=9; preserving existing media URLs
 ..........
 ----------------------------------------------------------------------
-Ran 15 tests in 1.917s
+Ran 15 tests in 1.982s
 
 OK
 Destroying test database for alias 'default'...
-=== EXIT=0 ===
