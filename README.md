@@ -129,12 +129,21 @@ When physical moves are enabled, the package scans current text/JSON fields on W
 
 **Race window (TOCTOU).** The reference scan and the subsequent delete/move are not
 serialized with concurrent page saves: an editor may add a reference between the scan
-and the file operation, and the operation will proceed. Mitigations: perform bulk
-deletes and physical moves in a maintenance window while content editing is paused,
-and re-run `audit_image_references` afterwards to detect any race-induced broken
-references. A hard technical guarantee would require serializing content saves with
-file operations (an application-level advisory lock or a DB trigger) and is
-deliberately out of scope for this package.
+and the file operation, and the operation will proceed. Operational limitations:
+
+1. Perform bulk deletes and physical moves in a maintenance window: pause editorial
+   saves, background jobs, imports, and any other writers of page/revision content.
+2. Before the operation: take a storage/database backup and run the reference audit
+   (`audit_image_references`).
+3. **Do not treat a post-operation `audit_image_references` run as a check for broken
+   URLs.** The audit builds its index from images and renditions that currently exist;
+   after a delete or move the old path no longer belongs to any indexed file, so a stale
+   reference to it will not match anything and will go unreported. Detecting media paths
+   that no longer resolve to an existing file requires a separate audit mode (orphans/
+   dangling-path detection), which is a distinct feature and is not part of this release.
+A hard technical guarantee against the race (an application-level advisory lock or a
+DB trigger serializing content saves with file operations) is deliberately out of scope
+for this package.
 
 ## Permissions and operations
 

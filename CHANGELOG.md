@@ -5,8 +5,9 @@ All notable changes for this package are documented here. PyPI availability is t
 ## [0.2.2] — 2026-11-16
 
 - Clarify ownership of management commands: `audit_image_references` and
-  `prune_unused_renditions` belong to the main project's blog app
-  (integration layer) and are not shipped with this package.
+  `prune_unused_renditions` use this package's scanner API, but the commands
+  themselves ship with the main project's blog app (integration layer) and
+  are not part of this package.
 
 - Restore compatibility with Wagtail 6/7: resolve the image permission policy
   through the policy registry on Wagtail 8+ and fall back to the classic
