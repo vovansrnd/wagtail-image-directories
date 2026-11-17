@@ -1,4 +1,7 @@
-=== Окружение прогона (Wagtail 8.1): Python 3.14.4 / Django 6.0.9 / Wagtail 8.1 / PostgreSQL 14.15 (сервер), psycopg2 2.9.13; wheel 0.2.2 (site-packages-импорт) ===
+=== Окружение прогона (Wagtail 8.1): Python 3.14.4 / Django 6.0.9 / Wagtail 8.1 / PostgreSQL 14.15 (сервер), psycopg2 2.9.13 ===
+=== wheel 0.2.2 sha256(первые 16): 4f9adaa1d7c7c510…; импорт ДО прогона: <venv>/site-packages/wagtail_image_directories/__init__.py ===
+проверяемый пакет (wheel): /opt/MyApps/wagtail/d67-release-audit/clean-image-directories-venv/lib/python3.14/site-packages/wagtail_image_directories/__init__.py
+Found 15 test(s).
 Creating test database for alias 'default'...
 System check identified some issues:
 
@@ -65,10 +68,8 @@ RuntimeError: Нельзя безопасно переместить файлы:
 .Physical move skipped for referenced image id=9; preserving existing media URLs
 ..........
 ----------------------------------------------------------------------
-Ran 15 tests in 2.528s
+Ran 15 tests in 3.456s
 
 OK
 Destroying test database for alias 'default'...
-проверяемый пакет (wheel): /opt/MyApps/wagtail/d67-release-audit/clean-image-directories-venv/lib/python3.14/site-packages/wagtail_image_directories/__init__.py
-Found 15 test(s).
 === EXIT=0 ===
