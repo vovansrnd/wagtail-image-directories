@@ -125,7 +125,7 @@ Physical relocation is an explicit opt-in:
 WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES = True
 ```
 
-When physical moves are enabled, the package scans current text/JSON fields on Wagtail Page models, common rich-text fields on other installed models (including forum posts and comments), saved Wagtail revisions, and concrete model relations before each move batch. Images found in those references are not physically moved; their old file paths are preserved and the response reports the number skipped. This scan cannot discover external backlinks, CDN copies, old browser caches, arbitrary CSS/JS, or third-party systems. Treat physical relocation as a migration: take a storage/database backup and run `python manage.py audit_image_references` first. Never infer that an image is safe to move or delete solely because this scanner found no reference.
+When physical moves are enabled, the package scans current text/JSON fields on Wagtail Page models, common rich-text fields on other installed models (including forum posts and comments), saved Wagtail revisions, and concrete model relations before each move batch. Images found in those references are not physically moved; their old file paths are preserved and the response reports the number skipped. This scan cannot discover external backlinks, CDN copies, old browser caches, arbitrary CSS/JS, or third-party systems. Treat physical relocation as a migration: take a storage/database backup and run `python manage.py audit_image_references` first. **Command ownership:** `audit_image_references` and `prune_unused_renditions` are management commands of the main project's blog app (integration layer) — the `wagtail-image-directories` package does NOT ship them. Never infer that an image is safe to move or delete solely because this scanner found no reference.
 
 **Race window (TOCTOU).** The reference scan and the subsequent delete/move are not
 serialized with concurrent page saves: an editor may add a reference between the scan
@@ -134,7 +134,8 @@ and the file operation, and the operation will proceed. Operational limitations:
 1. Perform bulk deletes and physical moves in a maintenance window: pause editorial
    saves, background jobs, imports, and any other writers of page/revision content.
 2. Before the operation: take a storage/database backup and run the reference audit
-   (`audit_image_references`).
+   (`python manage.py audit_image_references` — the command belongs to the main
+   project's blog app, not this package).
 3. **Do not treat a post-operation `audit_image_references` run as a check for broken
    URLs.** The audit builds its index from images and renditions that currently exist;
    after a delete or move the old path no longer belongs to any indexed file, so a stale
