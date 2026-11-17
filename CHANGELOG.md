@@ -1,8 +1,38 @@
 # Changelog — wagtail-image-directories
 
-All notable changes for this package are documented here. Version numbers below are **prepared release candidates** in this audit bundle; they are not a claim that those versions have already been uploaded to PyPI.
+All notable changes for this package are documented here. PyPI availability is tracked per release: entries below describe the package state at that version; publication happens separately once approved.
 
-## [0.2.0] — 2026-10-29 — prepared, not yet published
+## [0.2.2] — 2026-11-16
+
+- Clarify ownership of management commands: `audit_image_references` and
+  `prune_unused_renditions` use this package's scanner API, but the commands
+  themselves ship with the main project's blog app (integration layer) and
+  are not part of this package.
+
+- Restore compatibility with Wagtail 6/7: resolve the image permission policy
+  through the policy registry on Wagtail 8+ and fall back to the classic
+  module-level `permission_policy` on older releases (the registry appeared
+  in Wagtail 8.0).
+
+- Default physical relocation of existing originals to off; directory operations update metadata and Wagtail Collections without changing stored file URLs.
+- Added a read-only media URL reference scanner for current Page content, common rich-text fields on other installed models (including forum posts/comments), historical Wagtail revisions, and concrete image relations.
+- Bulk deletion refuses to remove images referenced by scanned page content, revisions, or model relations; incomplete scans fail closed.
+- Explicit physical moves skip images found by the reference scan and report the skipped count.
+- `prune_unused_renditions` now retains filter specs referenced by URLs in current Page bodies and historical revisions; an incomplete scan aborts pruning.
+
+## [0.2.1] — 2026-11-09
+
+- Lazy image permission policy: `policy_registry.get_by_type(get_image_model())`
+  replaces the module-level `wagtail.images.permissions.permission_policy`
+  import that Wagtail 8 deprecated (warning noise on worker start;
+  forward-compatible with Wagtail 9).
+- Version bumped because PyPI's 0.2.0 predates the fix (5170ece); the
+  old wheel still works on Wagtail 8.1, this is prevention rather than
+  a breakage fix.
+- Rollback: `pip install wagtail-image-directories==0.2.0` (PyPI).
+- Tested with: Wagtail 8.0.1/8.1, Django 6.0.9, Python 3.14.
+
+## [0.2.0] — 2026-10-29
 
 - Correct the real upload_to path for new originals; add a concrete storage-path migration; strengthen Collection permission checks and indexing; document rendition quotas and file-move risk.
 - Expanded installation, security, troubleshooting, storage/integration and multi-language documentation.

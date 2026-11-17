@@ -4,15 +4,19 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "wagtail-image-directories"
-version = "0.2.0"
+version = "0.2.2"
 description = "Directory-based storage (year/slug) and visual Image Navigator for Wagtail CMS."
 readme = "README.md"
 authors = [{ name = "Vladimir Tarasov" }]
 license = { text = "MIT" }
 classifiers = [
+    "Development Status :: 4 - Beta",
     "Framework :: Django",
+    "Framework :: Django :: 6.0",
     "Framework :: Wagtail",
+    "Framework :: Wagtail :: 8",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
     "License :: OSI Approved :: MIT License",
 ]
 dependencies = [

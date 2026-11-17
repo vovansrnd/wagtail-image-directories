@@ -105,3 +105,26 @@ Si el flujo no funciona, revisa la configuración de la app, las migraciones, el
 
 MIT. Código fuente: [https://github.com/vovansrnd/wagtail-image-directories](https://github.com/vovansrnd/wagtail-image-directories).
 
+## Notas de la versión 0.2.2
+
+- La eliminación masiva de imágenes está protegida: las imágenes referenciadas por el contenido de páginas, revisiones guardadas o modelos relacionados devuelven HTTP 409 y no se eliminan.
+- Al mover archivos físicamente (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`) primero se comprueban las referencias: las imágenes referenciadas conservan sus rutas existentes. El valor predeterminado es `False`.
+- La auditoría de referencias la realiza la app de blog del proyecto principal (`python manage.py audit_image_references`); este paquete solo incluye el escáner.
+
+## Importante: TOCTOU en la eliminación masiva y el traslado
+
+Las eliminaciones masivas y los traslados físicos no están serializados
+con las escrituras simultáneas de contenido: un editor puede añadir una
+referencia entre la comprobación y la operación sobre el archivo.
+
+- Ejecútelas en una ventana de mantenimiento: pause las ediciones
+  editoriales, los trabajos en segundo plano, las importaciones y
+  cualquier otra fuente de escritura de contenido de páginas/revisiones.
+- Antes de la operación: copia de seguridad de storage/base de datos y la
+  auditoría de referencias (`python manage.py audit_image_references` —
+  el comando pertenece a la app de blog del proyecto principal, no a este
+  paquete).
+- Una auditoría repetida NO detecta las URL antiguas que ya no
+  correspondan a imágenes/rendiciones existentes; la búsqueda de URL rotas
+  tras una eliminación/traslado requiere una función de auditoría
+  independiente.

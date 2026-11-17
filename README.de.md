@@ -105,3 +105,24 @@ Wenn der Ablauf nicht funktioniert, prüfen Sie App-Konfiguration, Migrationen, 
 
 MIT. Quellcode: [https://github.com/vovansrnd/wagtail-image-directories](https://github.com/vovansrnd/wagtail-image-directories).
 
+## Versionshinweise 0.2.2
+
+- Das Massenlöschen von Bildern ist geschützt: Bilder, auf die Seiteninhalte, gespeicherte Revisionen oder verwandte Modelle verweisen, geben HTTP 409 zurück und werden nicht gelöscht.
+- Beim physischen Verschieben von Dateien (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`) werden zuerst die Referenzen geprüft: referenzierte Bilder behalten ihre vorhandenen Pfade. Standard ist `False` — ohne explizite Aktivierung wird nichts physisch verschoben.
+- Die Referenzprüfung führt die Blog-App des Hauptprojekts aus (`python manage.py audit_image_references`); dieses Paket liefert nur den Scanner. Das Löschen des Seiteninhalts und der Revisionen des Hauptprojekts ist ebenfalls geschützt.
+
+## Wichtig: TOCTOU bei Massenlöschung und Verschiebung
+
+Massenlöschungen und physische Verschiebungen sind mit gleichzeitigen
+Inhaltsänderungen nicht serialisiert: ein Redakteur kann eine Referenz
+zwischen der Prüfung und der Dateioperation hinzufügen.
+
+- Führen Sie diese Operationen in einem Wartungsfenster aus: redaktionelle
+  Bearbeitungen, Hintergrundjobs, Importe und andere Schreibquellen von
+  Seiten-/Revisionsinhalten pausieren.
+- Vor der Operation: Backup von Storage/Datenbank und die Referenzprüfung
+  (`python manage.py audit_image_references` — die Kommando gehört zur
+  Blog-App des Hauptprojekts, nicht zu diesem Paket).
+- Eine wiederholte Prüfung erkennt KEINE alten URLs, die keinem
+  existierenden Image/Rendition mehr entsprechen — die Suche nach defekten
+  URLs nach Löschung/Verschiebung erfordert eine separate Audit-Funktion.

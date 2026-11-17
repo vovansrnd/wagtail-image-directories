@@ -16,31 +16,31 @@ It is intended for sites with large media libraries where a flat directory is di
 - **Directory operations:** create, rename, merge, and delete empty directory records; bulk move/delete operations check Wagtail image permissions.
 - **Admin previews:** directory cards use a real 150×150 rendition and read `file_size` from the database to avoid storage-size I/O on each card.
 - **Wagtail Collections:** the directory tree is mirrored into Wagtail Collections so existing collection permissions can still be used.
-- **Configurable safety limits:** control upload size, batch size, pixel limits, and physical file movement with Django settings.
+- **Configurable safety limits:** control upload size, batch size, pixel limits, and opt-in physical file movement with Django settings.
 
-## Audit/release status
-
-This source bundle prepares version `0.2.0` for a possible next release. Static syntax/package checks have been run, but a full Django/Wagtail integration suite has not run in the bundle build environment. Do not upload to PyPI until the release checklist in `../../04-docs/UPGRADE_AND_RELEASE.md` is complete.
 
 ## Requirements and compatibility
 
 The package metadata declares `wagtail>=6.0`. It depends on the configured Wagtail image model and a writable media storage backend. The supplied source archive does not include an automated compatibility matrix for every Django/Wagtail version; test your exact versions and storage backend before deployment.
 
+The package metadata declares a minimum of `wagtail>=6.0`; that is the
+supported floor, not the full test matrix. The two tested configurations
+differ in kind: Wagtail 8.0.1 is covered by integration tests of the
+originating project with editable installs of this package, while
+Wagtail 8.1 was tested against the target production stack with clean
+wheel and sdist installs — both with Django 6.0.9 on Python 3.14.
+Other combinations may work but are not covered by the test suite.
+
 ## Installation
 
 ```bash
-pip install wagtail-image-directories
+pip install wagtail-image-directories==0.2.2
 ```
-
-To install **the candidate source in this bundle** (rather than the already-published PyPI release), run from this package directory:
 
 ```bash
 python -m pip install .
-# For editable development instead:
-python -m pip install -e .
 ```
 
-`pip install wagtail-image-directories` selects the version currently published on PyPI. The candidate version shown in `pyproject.toml` is not published by this archive operation; publish it only after the release checklist in `../../04-docs/UPGRADE_AND_RELEASE.md` passes.
 
 
 Add the app after Wagtail's image app has been installed:
@@ -114,10 +114,37 @@ The Navigator's upload limit defaults are 50 MiB per file, 30 files per batch, a
 WAGTAIL_IMAGE_DIRECTORIES_MAX_UPLOAD_SIZE = 50 * 1024 * 1024
 WAGTAIL_IMAGE_DIRECTORIES_MAX_UPLOADS = 30
 WAGTAIL_IMAGE_DIRECTORIES_MAX_PIXELS = 89_478_485
+WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES = False  # safe default
+```
+
+By default, directory rename/merge/bulk-move updates the image's directory metadata and Wagtail Collection but **does not relocate the stored original file**. New uploads are still written directly to `images/<year>/<slug>/` by the image field's `upload_to` function.
+
+Physical relocation is an explicit opt-in:
+
+```python
 WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES = True
 ```
 
-Set `WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES = False` only when your storage/operations design deliberately manages paths elsewhere. In that mode, directory metadata and physical paths may no longer match; document the consequences and test your storage adapter.
+When physical moves are enabled, the package scans current text/JSON fields on Wagtail Page models, common rich-text fields on other installed models (including forum posts and comments), saved Wagtail revisions, and concrete model relations before each move batch. Images found in those references are not physically moved; their old file paths are preserved and the response reports the number skipped. This scan cannot discover external backlinks, CDN copies, old browser caches, arbitrary CSS/JS, or third-party systems. Treat physical relocation as a migration: take a storage/database backup and run `python manage.py audit_image_references` first. **Command ownership:** `audit_image_references` and `prune_unused_renditions` are management commands of the main project's blog app (integration layer) — the `wagtail-image-directories` package does NOT ship them. Never infer that an image is safe to move or delete solely because this scanner found no reference.
+
+**Race window (TOCTOU).** The reference scan and the subsequent delete/move are not
+serialized with concurrent page saves: an editor may add a reference between the scan
+and the file operation, and the operation will proceed. Operational limitations:
+
+1. Perform bulk deletes and physical moves in a maintenance window: pause editorial
+   saves, background jobs, imports, and any other writers of page/revision content.
+2. Before the operation: take a storage/database backup and run the reference audit
+   (`python manage.py audit_image_references` — the command belongs to the main
+   project's blog app, not this package).
+3. **Do not treat a post-operation `audit_image_references` run as a check for broken
+   URLs.** The audit builds its index from images and renditions that currently exist;
+   after a delete or move the old path no longer belongs to any indexed file, so a stale
+   reference to it will not match anything and will go unreported. Detecting media paths
+   that no longer resolve to an existing file requires a separate audit mode (orphans/
+   dangling-path detection), which is a distinct feature and is not part of this release.
+A hard technical guarantee against the race (an application-level advisory lock or a
+DB trigger serializing content saves with file operations) is deliberately out of scope
+for this package.
 
 ## Permissions and operations
 

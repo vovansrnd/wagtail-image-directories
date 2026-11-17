@@ -1,0 +1,72 @@
+Creating test database for alias 'default'...
+System check identified some issues:
+
+WARNINGS:
+?: (wagtailadmin.W003) The WAGTAILADMIN_BASE_URL setting is not defined
+	HINT: This should be the base URL used to access the Wagtail admin site. Without this, admin URLs outside of the admin (e.g. notification emails and the user bar) will not display correctly.
+
+System check identified 1 issue (0 silenced).
+..Could not verify image references before bulk deletion
+Traceback (most recent call last):
+  File "/opt/MyApps/wagtail/d67-release-audit/clean-image-directories-venv/lib/python3.14/site-packages/wagtail_image_directories/views.py", line 576, in bulk_delete_images
+    references = find_referenced_images(requested_ids)
+  File "/usr/lib/python3.14/unittest/mock.py", line 1176, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/unittest/mock.py", line 1180, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/unittest/mock.py", line 1241, in _execute_mock_call
+    raise effect
+RuntimeError: scanner down
+..Cannot verify image references before physical relocation
+Traceback (most recent call last):
+  File "/opt/MyApps/wagtail/d67-release-audit/clean-image-directories-venv/lib/python3.14/site-packages/wagtail_image_directories/views.py", line 423, in _move_queryset_to_directory
+    referenced_ids = set(find_referenced_images(image_ids))
+                         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/usr/lib/python3.14/unittest/mock.py", line 1176, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/unittest/mock.py", line 1180, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/unittest/mock.py", line 1241, in _execute_mock_call
+    raise effect
+RuntimeError: scanner down
+Error renaming directory 2026/src
+Traceback (most recent call last):
+  File "/opt/MyApps/wagtail/d67-release-audit/clean-image-directories-venv/lib/python3.14/site-packages/wagtail_image_directories/views.py", line 423, in _move_queryset_to_directory
+    referenced_ids = set(find_referenced_images(image_ids))
+                         ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/usr/lib/python3.14/unittest/mock.py", line 1176, in __call__
+    return self._mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/unittest/mock.py", line 1180, in _mock_call
+    return self._execute_mock_call(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.14/unittest/mock.py", line 1241, in _execute_mock_call
+    raise effect
+RuntimeError: scanner down
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/opt/MyApps/wagtail/d67-release-audit/clean-image-directories-venv/lib/python3.14/site-packages/wagtail_image_directories/views.py", line 474, in rename_directory
+    moved, physical_skipped, physical_enabled = _move_images_between_dirs(src_year, src_slug, dst_year, dst_slug, request.user)
+                                                ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/MyApps/wagtail/d67-release-audit/clean-image-directories-venv/lib/python3.14/site-packages/wagtail_image_directories/views.py", line 452, in _move_images_between_dirs
+    return _move_queryset_to_directory(allowed_images, dst_year, dst_slug, user)
+  File "/opt/MyApps/wagtail/d67-release-audit/clean-image-directories-venv/lib/python3.14/site-packages/wagtail_image_directories/views.py", line 426, in _move_queryset_to_directory
+    raise RuntimeError(
+        "Нельзя безопасно переместить файлы: не удалось проверить ссылки в body/revisions."
+    ) from exc
+RuntimeError: Нельзя безопасно переместить файлы: не удалось проверить ссылки в body/revisions.
+.Physical move skipped for referenced image id=9; preserving existing media URLs
+..........
+----------------------------------------------------------------------
+Ran 15 tests in 2.536s
+
+OK
+Destroying test database for alias 'default'...
+проверяемый пакет (wheel): /opt/MyApps/wagtail/d67-release-audit/clean-image-directories-venv/lib/python3.14/site-packages/wagtail_image_directories/__init__.py
+Found 15 test(s).

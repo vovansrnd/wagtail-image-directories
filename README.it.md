@@ -105,3 +105,24 @@ Se il flusso non funziona, controlla configurazione dell’app, migrazioni, ordi
 
 MIT. Codice sorgente: [https://github.com/vovansrnd/wagtail-image-directories](https://github.com/vovansrnd/wagtail-image-directories).
 
+## Note di rilascio 0.2.2
+
+- L'eliminazione in blocco delle immagini è protetta: le immagini referenziate dal contenuto delle pagine, dalle revisioni salvate o da modelli collegati restituiscono HTTP 409 e non vengono eliminate.
+- Durante lo spostamento fisico dei file (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`) i riferimenti vengono verificati prima: le immagini referenziate conservano i percorsi esistenti. Il valore predefinito è `False`.
+- L'audit dei riferimenti è eseguito dall'app blog del progetto principale (`python manage.py audit_image_references`); questo pacchetto fornisce solo lo scanner.
+
+## Importante: TOCTOU nell'eliminazione in blocco e nello spostamento
+
+Le eliminazioni in blocco e gli spostamenti fisici non sono serializzati
+con le scritture simultanee di contenuto: un editor può aggiungere un
+riferimento tra la verifica e l'operazione sul file.
+
+- Eseguitele in una finestra di manutenzione: sospendete le modifiche
+  redazionali, i job in background, le importazioni e ogni altra fonte di
+  scrittura di contenuti di pagine/revisioni.
+- Prima dell'operazione: backup di storage/database e audit dei
+  riferimenti (`python manage.py audit_image_references` — il comando
+  appartiene all'app blog del progetto principale, non a questo pacchetto).
+- Un audit ripetuto NON rileva le vecchie URL che non corrispondono più a
+  immagini/rendizioni esistenti; la ricerca di URL rotti dopo
+  eliminazione/spostamento richiede una funzione di audit distinta.
