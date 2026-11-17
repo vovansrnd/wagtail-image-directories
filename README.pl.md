@@ -110,3 +110,18 @@ MIT. Kod źródłowy: [https://github.com/vovansrnd/wagtail-image-directories](h
 - Masowe usuwanie obrazów jest chronione: obrazy, do których odwołują się treści stron, zapisane rewizje lub powiązane modele, zwracają HTTP 409 i nie są usuwane.
 - Przy fizycznym przenoszeniu plików (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`) najpierw sprawdzane są odwołania: obrazy z odwołaniami zachowują istniejące ścieżki. Domyślnie `False`.
 - Audyt odwołań wykonuje aplikacja blogowa projektu głównego (`python manage.py audit_image_references`); ten pakiet dostarcza tylko skaner.
+
+## Ważne: TOCTOU przy masowym usuwaniu i przenoszeniu
+
+Masowe usuwanie i fizyczne przenoszenie nie są serializowane z
+równoległymi zapisami treści: redaktor może dodać odwołanie między
+weryfikacją a operacją na pliku.
+
+- Wykonuj je w oknie serwisowym: wstrzymaj redakcyjne edycje, zadania w
+  tle, importy i inne źródła zapisu treści stron/rewizji.
+- Przed operacją: kopia zapasowa storage/bazy danych i audyt odwołań
+  (`python manage.py audit_image_references` — polecenie należy do
+  aplikacji blogowej projektu głównego, nie do tego pakietu).
+- Powtórzony audyt NIE wykrywa starych adresów URL, które nie
+  odpowiadają już istniejącym obrazom/rendycjom; wyszukiwanie uszkodzonych
+  URL po usunięciu/przenoszeniu wymaga osobnej funkcji audytu.

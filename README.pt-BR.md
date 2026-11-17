@@ -110,3 +110,19 @@ MIT. Código-fonte: [https://github.com/vovansrnd/wagtail-image-directories](htt
 - A exclusão em massa de imagens é protegida: imagens referenciadas pelo conteúdo de páginas, revisões salvas ou modelos relacionados retornam HTTP 409 e não são excluídas.
 - Ao mover arquivos fisicamente (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`), as referências são verificadas primeiro: as imagens referenciadas mantêm seus caminhos existentes. O padrão é `False`.
 - A auditoria de referências é feita pelo app de blog do projeto principal (`python manage.py audit_image_references`); este pacote fornece apenas o scanner.
+
+## Importante: TOCTOU na exclusão em massa e no traslado
+
+As exclusões em massa e os traslados físicos não são serializados com as
+escritas simultâneas de conteúdo: um editor pode adicionar uma referência
+entre a verificação e a operação no arquivo.
+
+- Execute-as em uma janela de manutenção: pause as edições editoriais, os
+  trabalhos em segundo plano, as importações e qualquer outra fonte de
+  escrita de conteúdo de páginas/revisiones.
+- Antes da operação: backup de storage/banco de dados e auditoria de
+  referências (`python manage.py audit_image_references` — o comando
+  pertence ao app de blog do projeto principal, não a este pacote).
+- Uma auditoria repetida NÃO detecta as URL antigas que não correspondam
+  mais a imagens/rendições existentes; a busca de URL quebradas após
+  exclusão/traslado requer uma função de auditoria distinta.

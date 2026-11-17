@@ -110,3 +110,21 @@ MIT. Code source: [https://github.com/vovansrnd/wagtail-image-directories](https
 - La suppression massive d'images est protégée : les images référencées par le contenu des pages, les révisions enregistrées ou des modèles liés renvoient HTTP 409 et ne sont pas supprimées.
 - Lors du déplacement physique des fichiers (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`), les références sont vérifiées d'abord : les images référencées conservent leurs chemins existants. La valeur par défaut est `False`.
 - L'audit des références est effectué par l'application de blog du projet principal (`python manage.py audit_image_references`) ; ce paquet ne fournit que le scanner.
+
+## Important : TOCTOU lors de la suppression massive et du déplacement
+
+Les suppressions massives et les déplacements physiques ne sont pas
+sérialisés avec les écritures simultanées de contenu : un éditeur peut
+ajouter une référence entre la vérification et l'opération sur le fichier.
+
+- Effectuez-les dans une fenêtre de maintenance : suspendez les
+  modifications éditoriales, les tâches de fond, les importations et toute
+  autre source d'écriture de contenu de pages/révisions.
+- Avant l'opération : sauvegarde du stockage/de la base de données et audit
+  des références (`python manage.py audit_image_references` — la commande
+  appartient à l'application de blog du projet principal, pas à ce
+  paquet).
+- Un audit répété NE détecte PAS les anciennes URL qui ne correspondent
+  plus à des images/renditions existantes ; la recherche d'URL cassées
+  après suppression/déplacement nécessite une fonction d'audit
+  distincte.

@@ -110,3 +110,17 @@ MIT. 소스 코드: [https://github.com/vovansrnd/wagtail-image-directories](htt
 - 이미지 일괄 삭제는 보호됩니다: 페이지 본문, 저장된 리비전 또는 관련 모델이 참조하는 이미지는 HTTP 409을 반환하며 삭제되지 않습니다.
 - 파일을 물리적으로 이동할 때 (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`) 먼저 참조를 확인합니다. 참조된 이미지는 기존 경로를 유지합니다. 기본값은 `False`입니다.
 - 참조 감사는 메인 프로젝트의 blog 앱이 수행합니다 (`python manage.py audit_image_references`). 이 패키지는 스캐너만 제공합니다.
+
+## 중요: 대량 삭제 및 이동 시 TOCTOU
+
+대량 삭제와 물리적 이동은 동시 콘텐츠 쓰기와 직렬화되지 않습니다. 확인과
+파일 작업 사이에 편집자가 참조를 추가할 수 있습니다.
+
+- 유지보수 창에서 실행하세요: 편집 작업, 백그라운드 잡, 가져오기 및 기타
+  페이지/리비전 콘텐츠 쓰기 원천을 일시 중지합니다.
+- 작업 전에: 스토리지/데이터베이스 백업 및 참조 감사
+  (`python manage.py audit_image_references` — 이 명령은 메인 프로젝트의
+  blog 앱에 속하며 이 패키지에는 포함되지 않습니다).
+- 감사를 반복해도 기존 Image/Rendition 과 더 이상 일치하지 않는 오래된
+  URL은 감지되지 않습니다. 삭제/이동 후 끊어진 URL 확인에는 별도의 감사
+  기능이 필요합니다.

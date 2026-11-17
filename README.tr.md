@@ -110,3 +110,19 @@ MIT. Kaynak kod: [https://github.com/vovansrnd/wagtail-image-directories](https:
 - Toplu görüntü silme korumalıdır: sayfa içeriği, kaydedilen revizyonlar veya ilişkili modeller tarafından referans verilen görüntüler HTTP 409 döndürür ve silinmez.
 - Dosyaları fiziksel olarak taşırken (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`) önce referanslar kontrol edilir: referans verilen görüntüler mevcut yollarını korur. Varsayılan `False`.
 - Referans denetimi ana projenin blog uygulaması tarafından yapılır (`python manage.py audit_image_references`); bu paket yalnızca tarayıcıyı sağlar.
+
+## Önemli: Toplu silme ve taşıma sırasında TOCTOU
+
+Toplu silmeler ve fiziksel taşımalar, eşzamanlı içerik yazmalarıyla
+serileştirilmemiştir: bir editör, kontrol ile dosya işlemi arasında bir
+referans ekleyebilir.
+
+- Bu işlemleri bir bakım penceresinde yapın: editoryal düzenlemeleri,
+  arka plan işlerini, içe aktarmaları ve sayfa/revizyon içeriğinin diğer
+  yazma kaynaklarını duraklatın.
+- İşlemden önce: depolama/veritabanı yedeği alın ve referans denetimini
+  çalıştırın (`python manage.py audit_image_references` — komut ana
+  projenin blog uygulamasına aittir, bu pakete değil).
+- Tekrarlanan bir denetim, artık mevcut Image/Rendition ile eşleşmeyen
+  eski URL'leri ALGILAMAZ; silme/taşıma sonrası bozuk URL araması ayrı bir
+  denetim işlevi gerektirir.

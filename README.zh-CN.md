@@ -110,3 +110,15 @@ MIT. 源代码: [https://github.com/vovansrnd/wagtail-image-directories](https:/
 - 图像批量删除受到保护：被页面内容、已保存修订或关联模型引用的图像会返回 HTTP 409，不会被删除。
 - 物理移动文件时 (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`) 会先检查引用：被引用的图像保留其现有路径。默认值为 `False`。
 - 引用审计由主项目的 blog 应用执行 (`python manage.py audit_image_references`)；本包仅提供扫描器。
+
+## 重要：批量删除与移动时的 TOCTOU
+
+批量删除和物理移动与并发的内容写入没有串行化：编辑者可能在检查与文件
+操作之间添加引用。
+
+- 请在维护窗口执行这些操作：暂停编辑保存、后台任务、导入以及其他
+  页面/修订内容的写入来源。
+- 操作之前：备份存储/数据库并运行引用审计 (`python manage.py
+  audit_image_references` — 该命令属于主项目的 blog 应用，不属于本包)。
+- 重复的审计不会检测不再匹配现有 Image/Rendition 的旧 URL；删除/移动后
+  检查损坏的 URL 需要单独的审计功能。

@@ -110,3 +110,19 @@ MIT. Broncode: [https://github.com/vovansrnd/wagtail-image-directories](https://
 - Massaal verwijderen van afbeeldingen is beveiligd: afbeeldingen waarnaar pagina-inhoud, opgeslagen revisies of gerelateerde modellen verwijzen, geven HTTP 409 terug en worden niet verwijderd.
 - Bij fysiek verplaatsen van bestanden (`WAGTAIL_IMAGE_DIRECTORIES_MOVE_FILES=True`) worden eerst de referenties gecontroleerd: gerefereerde afbeeldingen behouden hun bestaande paden. De standaardwaarde is `False`.
 - De referentieaudit wordt uitgevoerd door de blog-app van het hoofdproject (`python manage.py audit_image_references`); dit pakket levert alleen de scanner.
+
+## Belangrijk: TOCTOU bij massaal verwijderen en verplaatsen
+
+Massaal verwijderen en fysiek verplaatsen zijn niet geserialiseerd met
+gelijktijdige inhoudswijzigingen: een redacteur kan een referentie
+toevoegen tussen de controle en de bestandsoperatie.
+
+- Voer deze operaties uit in een onderhoudsvenster: pauzeer redactionele
+  bewerkingen, achtergrondtaken, importeren en andere schrijvers van
+  pagina-/revisie-inhoud.
+- Voor de operatie: backup van storage/database en de referentieaudit
+  (`python manage.py audit_image_references` — het commando behoort tot de
+  blog-app van het hoofdproject, niet tot dit pakket).
+- Een herhaalde audit detecteert GEEN oude URL's die niet meer
+  overeenkomen met bestaande images/renditions; het zoeken naar kapotte
+  URL's na verwijderen/verplaatsen vereist een aparte auditfunctie.
